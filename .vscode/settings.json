@@ -1,0 +1,4 @@
+{
+  // Desactiver completement la validation Markdown
+  "markdown.validate.enabled": false
+}
