@@ -1,7 +1,7 @@
 {
   "buildCommand": "pnpm build",
   "framework": "nextjs",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --frozen-lockfile",
   "outputDirectory": ".next",
   "devCommand": "pnpm dev",
   "build": {
@@ -10,9 +10,12 @@
     }
   },
   "functions": {
-    "pages/api/**/*.ts": {
+    "app/api/**/*.ts": {
       "memory": 1024,
       "maxDuration": 10
     }
+  },
+  "env": {
+    "NEXTAUTH_URL": "https://roadpress.superbien-works.fr"
   }
 }

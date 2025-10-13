@@ -67,7 +67,8 @@ POSTGRES_URL_NON_POOLING="postgresql://user:password@host:5432/database"
 
 # NextAuth.js
 NEXTAUTH_SECRET="generate-a-secret-with-openssl-rand-base64-32"
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="http://localhost:3000"  # Développement local
+# NEXTAUTH_URL="https://roadpress.superbien-works.fr"  # Production
 
 # App
 NODE_ENV="development"
