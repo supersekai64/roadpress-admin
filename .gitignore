@@ -16,6 +16,9 @@
 # production
 /build
 
+# documentation
+/docs
+
 # images optimisees
 /public/optimized
 

@@ -156,10 +156,25 @@ export default function ApiKeysPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      
+      // Afficher les détails des échecs si présents
+      const hasFailures = data.failed > 0;
+      const failureDetails = data.details?.failed?.map((f: { site: string; error: string }) => 
+        `${f.site}: ${f.error}`
+      ).join('\n') || '';
+
       toast({
-        title: 'Distribution réussie',
-        description: `${data.success} site(s) mis à jour, ${data.failed} échec(s)`,
+        title: hasFailures ? 'Distribution partiellement réussie' : 'Distribution réussie',
+        description: hasFailures 
+          ? `${data.success} site(s) mis à jour, ${data.failed} échec(s)\n\nÉchecs:\n${failureDetails}`
+          : `${data.success} site(s) mis à jour avec succès`,
+        variant: hasFailures ? 'destructive' : 'default',
       });
+
+      // Log des détails en console pour debug
+      if (hasFailures) {
+        console.log('Détails des échecs de distribution:', data.details);
+      }
     },
     onError: (error: Error) => {
       toast({

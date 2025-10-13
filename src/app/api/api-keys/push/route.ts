@@ -5,6 +5,14 @@ import prisma from '@/lib/prisma';
 /**
  * POST /api/api-keys/push
  * Distribue les clés API actives vers tous les sites clients associés
+ * 
+ * ⚠️ IMPORTANT : En développement, les sites clients n'existent pas réellement.
+ * Les échecs de push sont NORMAUX en environnement de développement.
+ * 
+ * En production, chaque site WordPress client doit avoir le plugin RoadPress installé
+ * qui expose l'endpoint : /wp-json/roadpress/v1/update-keys
+ * 
+ * Cet endpoint reçoit les clés API et les stocke dans la base de données WordPress.
  */
 export async function POST() {
   try {
@@ -29,7 +37,8 @@ export async function POST() {
       );
     }
 
-    // Récupérer toutes les licences actives et associées
+    // Récupérer toutes les licences actives et associées avec un site configuré
+    // Une licence = un site WordPress avec le plugin RoadPress installé
     const activeLicenses = await prisma.license.findMany({
       where: {
         status: 'ACTIVE',
@@ -61,7 +70,7 @@ export async function POST() {
           return acc;
         }, {} as Record<string, string>);
 
-        // Appel webhook vers le site client
+        // Appel webhook vers le site client WordPress
         const webhookUrl = `${license.siteUrl}/wp-json/roadpress/v1/update-keys`;
         
         const response = await fetch(webhookUrl, {
@@ -80,9 +89,10 @@ export async function POST() {
         if (response.ok) {
           results.success.push(license.clientName);
         } else {
+          const errorText = await response.text().catch(() => 'Aucun détail');
           results.failed.push({
             site: license.clientName,
-            error: `HTTP ${response.status}`,
+            error: `HTTP ${response.status} - ${errorText}`,
           });
         }
       } catch (error) {
@@ -90,6 +100,7 @@ export async function POST() {
           site: license.clientName,
           error: error instanceof Error ? error.message : 'Erreur inconnue',
         });
+        console.error(`Erreur push vers ${license.clientName} (${license.siteUrl}):`, error);
       }
     }
 

@@ -32,7 +32,7 @@ async function main() {
       startDate: new Date('2025-01-01'),
       endDate: new Date('2025-12-31'),
       status: 'ACTIVE',
-      siteUrl: 'https://test.example.com',
+      siteUrl: 'http://localhost:3000',
       isAssociated: true,
     },
   });
