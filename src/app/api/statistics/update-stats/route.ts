@@ -36,11 +36,6 @@ export async function POST(request: NextRequest) {
         data: {
           licenseId: license.id,
           emailsSent: parseInt(email_stats) || 0,
-          emailsDelivered: parseInt(email_stats) || 0,
-          emailsOpened: 0,
-          emailsClicked: 0,
-          emailsBounced: 0,
-          emailsSpam: 0,
         },
       });
     }
@@ -53,8 +48,6 @@ export async function POST(request: NextRequest) {
             data: {
               licenseId: license.id,
               smsSent: stat.sms_count,
-              smsDelivered: stat.sms_count,
-              smsFailed: 0,
               totalCost: 0,
             },
           });

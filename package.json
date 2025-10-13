@@ -33,13 +33,18 @@
     "start": "next start",
     "lint": "next lint",
     "kill": "powershell -Command \"Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force\"",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f postgres",
+    "docker:reset": "docker-compose down -v && docker-compose up -d",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed.ts",
     "db:seed:sms": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed-sms-reports.ts",
-    "db:create-admin": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/create-admin.ts"
+    "db:create-admin": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/create-admin.ts",
+    "db:setup": "pnpm docker:up && timeout /t 5 /nobreak && pnpm db:push && pnpm db:seed"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

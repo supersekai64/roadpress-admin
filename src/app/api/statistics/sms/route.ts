@@ -42,22 +42,14 @@ export async function GET(request: NextRequest) {
 
     const totals = {
       totalSent: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.smsSent, 0),
-      totalDelivered: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.smsDelivered, 0),
-      totalFailed: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.smsFailed, 0),
       totalCost: stats.reduce((sum: number, s: typeof stats[0]) => sum + Number(s.totalCost), 0),
     };
-
-    const deliveryRate =
-      totals.totalSent > 0
-        ? ((totals.totalDelivered / totals.totalSent) * 100).toFixed(2)
-        : '0';
 
     return NextResponse.json({
       stats,
       totals: {
         ...totals,
         totalCost: totals.totalCost.toFixed(2),
-        deliveryRate: `${deliveryRate}%`,
       },
     });
   } catch (error) {

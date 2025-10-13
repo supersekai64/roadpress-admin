@@ -45,34 +45,11 @@ export async function GET(request: NextRequest) {
     // Calculer les totaux
     const totals = {
       totalSent: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.emailsSent, 0),
-      totalDelivered: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.emailsDelivered, 0),
-      totalOpened: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.emailsOpened, 0),
-      totalClicked: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.emailsClicked, 0),
-      totalBounced: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.emailsBounced, 0),
-      totalSpam: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.emailsSpam, 0),
     };
-
-    const deliveryRate =
-      totals.totalSent > 0
-        ? ((totals.totalDelivered / totals.totalSent) * 100).toFixed(2)
-        : '0';
-    const openRate =
-      totals.totalDelivered > 0
-        ? ((totals.totalOpened / totals.totalDelivered) * 100).toFixed(2)
-        : '0';
-    const clickRate =
-      totals.totalOpened > 0
-        ? ((totals.totalClicked / totals.totalOpened) * 100).toFixed(2)
-        : '0';
 
     return NextResponse.json({
       stats,
-      totals: {
-        ...totals,
-        deliveryRate: `${deliveryRate}%`,
-        openRate: `${openRate}%`,
-        clickRate: `${clickRate}%`,
-      },
+      totals,
     });
   } catch (error) {
     console.error('Erreur GET /api/statistics/email:', error);

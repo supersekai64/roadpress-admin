@@ -239,20 +239,15 @@ export default function StatisticsPage() {
   const openaiCost = openaiData?.totals?.totalTokens ? openaiData.totals.totalTokens * PRICING.OPENAI_PER_TOKEN : 0;
 
   // Préparer les données pour les graphiques Email
-  const emailChartData = emailData?.stats.map((stat: { createdAt: string; emailsSent: number; emailsDelivered: number; emailsOpened: number; emailsClicked: number }) => ({
+  const emailChartData = emailData?.stats.map((stat: { createdAt: string; emailsSent: number }) => ({
     date: format(new Date(stat.createdAt), 'dd/MM', { locale: fr }),
     Envoyés: stat.emailsSent,
-    Délivrés: stat.emailsDelivered,
-    Ouverts: stat.emailsOpened,
-    Cliqués: stat.emailsClicked,
   })) || [];
 
   // Préparer les données pour les graphiques SMS
-  const smsChartData = smsData?.stats.map((stat: { createdAt: string; smsSent: number; smsDelivered: number; smsFailed: number }) => ({
+  const smsChartData = smsData?.stats.map((stat: { createdAt: string; smsSent: number }) => ({
     date: format(new Date(stat.createdAt), 'dd/MM', { locale: fr }),
     Envoyés: stat.smsSent,
-    Délivrés: stat.smsDelivered,
-    Échoués: stat.smsFailed,
   })) || [];
 
   // Préparer les données pour DeepL

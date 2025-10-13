@@ -49,11 +49,6 @@ async function main() {
       data: {
         license: { connect: { id: testLicense.id } },
         emailsSent: Math.floor(Math.random() * 100) + 50,
-        emailsDelivered: Math.floor(Math.random() * 90) + 45,
-        emailsOpened: Math.floor(Math.random() * 60) + 30,
-        emailsClicked: Math.floor(Math.random() * 30) + 10,
-        emailsBounced: Math.floor(Math.random() * 5),
-        emailsSpam: Math.floor(Math.random() * 3),
         createdAt: date,
       },
     });
@@ -66,14 +61,11 @@ async function main() {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     const smsSent = Math.floor(Math.random() * 50) + 20;
-    const smsDelivered = Math.floor(Math.random() * 45) + 18;
 
     await prisma.smsStats.create({
       data: {
         license: { connect: { id: testLicense.id } },
         smsSent,
-        smsDelivered,
-        smsFailed: smsSent - smsDelivered,
         totalCost: (smsSent * 0.05).toString(),
         createdAt: date,
       },
