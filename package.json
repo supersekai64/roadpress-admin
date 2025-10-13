@@ -27,7 +27,6 @@
     "dev": "next dev --turbopack",
     "dev:clean": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-clean.ps1",
     "optimize:images": "node scripts/optimize-images.js",
-    "prebuild": "pnpm optimize:images",
     "build": "prisma generate --no-engine && next build",
     "postinstall": "prisma generate",
     "analyze": "cross-env ANALYZE=true pnpm build",
