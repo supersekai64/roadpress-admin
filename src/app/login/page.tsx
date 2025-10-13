@@ -87,13 +87,6 @@ export default function LoginPage() {
               {isLoading ? 'Connexion...' : 'Se connecter'}
             </Button>
           </form>
-
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            <p>Credentials de test :</p>
-            <p className="font-mono text-xs">
-              admin@roadpress.com / admin123
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>

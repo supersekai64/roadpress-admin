@@ -7,7 +7,8 @@ async function main() {
   console.log('🌱 Démarrage du seed de la base de données...');
 
   // Créer un utilisateur admin par défaut
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  // ⚠️ En production, le mot de passe doit être changé via SQL (voir UPDATE-PASSWORD-PROD.md)
+  const hashedPassword = '$2b$10$RigKTagJfLPdKNals8Nqz.wWlGKiQTbmyM1U0ClrBFCE5OTp6me6e';
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@roadpress.com' },

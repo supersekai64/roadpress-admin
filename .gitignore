@@ -39,6 +39,13 @@ yarn-error.log*
 .env*.production
 .env
 
+# fichiers sensibles avec mots de passe
+UPDATE-PASSWORD-PROD.md
+RECAPITULATIF-PASSWORD.md
+ADMIN-PASSWORD-INFO.md
+prisma/update-admin-password-*.sql
+prisma/*-local.sql
+
 # vercel
 .vercel
 
