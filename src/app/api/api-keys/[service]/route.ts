@@ -69,9 +69,16 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateKeySchema.parse(body);
 
-    const apiKey = await prisma.apiKey.update({
+    // Utiliser upsert pour créer ou mettre à jour la clé
+    const apiKey = await prisma.apiKey.upsert({
       where: { service },
-      data: {
+      create: {
+        service,
+        key: validatedData.key,
+        isActive: validatedData.isActive ?? true,
+        lastPush: new Date(),
+      },
+      update: {
         key: validatedData.key,
         isActive: validatedData.isActive ?? true,
         lastPush: new Date(),
