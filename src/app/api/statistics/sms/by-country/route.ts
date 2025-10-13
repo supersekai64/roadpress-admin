@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth.server';
 
 // GET /api/statistics/sms/by-country - Récupérer les statistiques SMS par pays
 export async function GET(request: NextRequest) {

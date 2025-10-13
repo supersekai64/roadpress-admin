@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth.server';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/header';
 

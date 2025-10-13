@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth.server';
 
 const updateKeySchema = z.object({
   key: z.string().min(1, 'La clé API est requise'),

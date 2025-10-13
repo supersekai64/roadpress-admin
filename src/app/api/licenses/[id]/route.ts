@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth.server';
 
 const licenseSchema = z.object({
   clientName: z.string().min(1, 'Le nom du client est requis'),

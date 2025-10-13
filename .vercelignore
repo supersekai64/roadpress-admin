@@ -1,0 +1,55 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+out
+dist
+build
+
+# Development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+coverage
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Documentation (si pas nécessaire en production)
+docs
+*.md
+!README.md
+
+# Scripts de développement
+scripts/dev-clean.ps1
+scripts/optimize-images.js
+
+# Prisma
+prisma/migrations
+prisma/*.ts
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Misc
+.DS_Store
+*.pem

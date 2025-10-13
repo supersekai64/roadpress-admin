@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { auth } from '@/lib/auth';
+import { auth } from '@/lib/auth.server';
 
 // GET /api/api-keys - Récupérer toutes les clés API
 export async function GET() {
