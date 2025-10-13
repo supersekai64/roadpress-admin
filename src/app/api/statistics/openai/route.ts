@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { auth } from '@/lib/auth';
+
+// GET /api/statistics/openai - Récupérer les statistiques OpenAI
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+    const licenseId = searchParams.get('licenseId');
+
+    const now = new Date();
+    const startDate = startDateParam ? new Date(startDateParam) : new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endDate = endDateParam ? new Date(endDateParam) : new Date();
+
+    const whereClause: { createdAt?: { gte: Date; lte: Date }; licenseId?: string } = {
+      createdAt: { gte: startDate, lte: endDate },
+    };
+
+    if (licenseId && licenseId !== 'all') {
+      whereClause.licenseId = licenseId;
+    }
+
+    const stats = await prisma.openaiStats.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'asc' },
+      include: {
+        license: {
+          select: {
+            clientName: true,
+            licenseKey: true,
+          },
+        },
+      },
+    });
+
+    const totals = {
+      totalRequests: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.requestsCount, 0),
+      totalPromptTokens: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.promptTokens, 0),
+      totalCompletionTokens: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.completionTokens, 0),
+      totalTokens: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.totalTokens, 0),
+      totalCost: stats.reduce((sum: number, s: typeof stats[0]) => sum + Number(s.totalCost), 0),
+    };
+
+    return NextResponse.json({
+      stats,
+      totals: {
+        ...totals,
+        totalCost: totals.totalCost.toFixed(2),
+      },
+    });
+  } catch (error) {
+    console.error('Erreur GET /api/statistics/openai:', error);
+    return NextResponse.json(
+      { error: 'Erreur lors de la récupération des statistiques' },
+      { status: 500 }
+    );
+  }
+}
