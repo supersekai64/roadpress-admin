@@ -247,23 +247,14 @@ Le dashboard permet de distribuer automatiquement les clés API (DeepL, OpenAI, 
 **Architecture :**
 - 1 licence = 1 site WordPress
 - Chaque site doit avoir le plugin RoadPress installé
-- Le plugin expose l'endpoint : `/wp-json/roadpress/v1/update-keys`
+- Le plugin expose l'endpoint : `/wp-json/roadpress/v1/update_api_keys`
 
-### ⚠️ Important en développement
+### ✅ Prérequis
 
-**En développement, le push échoue normalement** car les sites clients n'existent pas réellement. C'est un comportement attendu.
-
-Le message suivant est **NORMAL en dev** :
-```
-0 site(s) mis à jour, 2 échec(s)
-```
-
-### ✅ En production
-
-En production, chaque site WordPress client doit avoir :
+Chaque site WordPress client doit avoir :
 1. Le plugin RoadPress installé et activé
 2. Une licence valide configurée
-3. HTTPS activé (obligatoire)
+3. HTTPS activé (obligatoire en production)
 
 ### 📖 Documentation complète
 

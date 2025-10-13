@@ -32,8 +32,8 @@ async function main() {
       startDate: new Date('2025-01-01'),
       endDate: new Date('2025-12-31'),
       status: 'ACTIVE',
-      siteUrl: 'http://localhost:3000',
-      isAssociated: true,
+      siteUrl: 'https://test.example.com',
+      isAssociated: false, // Désactivé par défaut, à activer manuellement
     },
   });
 
