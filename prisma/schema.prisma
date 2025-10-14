@@ -10,10 +10,10 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // En développement, utilise DATABASE_URL de .env.local
-  // En production Vercel, utilise PRISMA_DATABASE_URL
-  url      = env("DATABASE_URL")
-  // URL directe pour les migrations (optionnel en dev)
+  // Production Vercel : PRISMA_DATABASE_URL (prisma://)
+  // Développement : DATABASE_URL (postgresql://)
+  url      = env("PRISMA_DATABASE_URL")
+  // URL directe pour migrations et Prisma Studio
   directUrl = env("DIRECT_DATABASE_URL")
 }
 
