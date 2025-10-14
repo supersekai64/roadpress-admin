@@ -10,11 +10,10 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Production (Vercel) : POSTGRES_PRISMA_URL (Accelerate)  
-  // Développement : DATABASE_URL (direct PostgreSQL)
-  url      = env("DATABASE_URL")
-  // URL directe pour les migrations (production uniquement)
-  directUrl = env("POSTGRES_URL_NON_POOLING")
+  // Utilise PRISMA_DATABASE_URL (Vercel fournit automatiquement)
+  url      = env("PRISMA_DATABASE_URL")
+  // URL directe pour les migrations
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // =====================================================
