@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
 import {
   LayoutDashboard,
   FileKey,
@@ -13,6 +13,7 @@ import {
   Settings,
   MapPin,
   FileText,
+  Bug,
 } from 'lucide-react';
 
 const navItems = [
@@ -46,37 +47,42 @@ const navItems = [
     label: 'Carte POI',
     icon: MapPin,
   },
+  {
+    href: '/dashboard/debug',
+    label: 'Debug',
+    icon: Bug,
+  },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  readonly user: {
+    readonly name?: string | null;
+    readonly email?: string | null;
+  };
+}
+
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  // Attendre que le composant soit monté côté client
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Pendant l'hydratation, utiliser le logo blanc (correspond au dark par défaut)
-  // Une fois monté, utiliser le thème résolu
-  const isDark = mounted ? resolvedTheme === 'dark' : true;
-  const logoSrc = isDark ? '/images/roadpress-w.svg' : '/images/roadpress-b.svg';
+  
+  const initials = user.name
+    ?.split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase() ?? 'A';
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-card">
-      {/* Logo */}
-      <div className="flex h-16 items-center border-b px-6">
-        <Link href="/dashboard" className="flex items-center">
-          <Image
-            src={logoSrc}
-            alt="Roadpress"
-            width={140}
-            height={36}
-            className="shrink-0"
-            priority
-          />
-        </Link>
+      {/* Profil utilisateur */}
+      <div className="flex h-16 items-center border-b px-4">
+        <div className="flex items-center gap-2 p-2 w-full">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <div className="text-left flex-1">
+            <p className="text-sm font-medium truncate">{user.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}

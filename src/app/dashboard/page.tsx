@@ -46,10 +46,10 @@ async function getDashboardStats() {
 
   // Calcul des coûts
   const deeplCharacters = deeplStats._sum.charactersTranslated || 0;
-  const deeplCost = deeplCharacters * 0.00002; // 0.00002€ par caractère
+  const deeplCost = deeplCharacters * 0.00002; // $0.00002 par caractère
 
   const openaiTokens = openaiStats._sum.totalTokens || 0;
-  const openaiCost = openaiTokens * 0.0000016; // 0.0000016€ par token
+  const openaiCost = openaiTokens * 0.000000775; // $0.000000775 par token
 
   const smsSent = smsStats._sum.smsSent || 0;
   const smsCost = Number(smsStats._sum.totalCost || 0);
@@ -165,7 +165,7 @@ export default async function DashboardPage() {
                 {stats.yearStats.deepl.characters <= 1 ? 'caractère traduit' : 'caractères traduits'}
               </p>
               <div className="text-lg font-semibold text-primary text-right">
-                {stats.yearStats.deepl.cost.toFixed(2)} €
+                {stats.yearStats.deepl.cost.toFixed(2)} $
               </div>
             </CardContent>
           </Card>
@@ -183,7 +183,7 @@ export default async function DashboardPage() {
                 {stats.yearStats.openai.tokens <= 1 ? 'token consommé' : 'tokens consommés'}
               </p>
               <div className="text-lg font-semibold text-primary text-right">
-                {stats.yearStats.openai.cost.toFixed(2)} €
+                {stats.yearStats.openai.cost.toFixed(2)} $
               </div>
             </CardContent>
           </Card>
@@ -216,7 +216,7 @@ export default async function DashboardPage() {
                 {stats.yearStats.email.sent.toLocaleString()}
               </div>
               <p className="text-sm text-muted-foreground mb-2">
-                {stats.yearStats.email.sent <= 1 ? 'E-mail envoyé' : 'E-mails envoyés'}
+                {stats.yearStats.email.sent <= 1 ? 'e-mail envoyé' : 'e-mails envoyés'}
               </p>
             </CardContent>
           </Card>

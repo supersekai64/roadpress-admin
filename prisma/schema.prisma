@@ -61,6 +61,7 @@ model License {
   emailLogs     EmailLog[]
   smsLogs       SmsLog[]
   pois          Poi[]
+  debugLogs     DebugLog[]
 
   @@map("licenses")
 }
@@ -333,4 +334,56 @@ model SmsPricingRule {
   @@unique([versionId, country])
   @@index([country])
   @@map("sms_pricing_rules")
+}
+
+// =====================================================
+// DEBUG LOGS SYSTEM
+// =====================================================
+
+model DebugLog {
+  id          String      @id @default(cuid())
+  category    LogCategory
+  action      String      // e.g., "sync", "api_push", "license_update"
+  method      String?     // HTTP method (GET, POST, PUT, DELETE)
+  endpoint    String?     // API endpoint called
+  licenseId   String?     @map("license_id")
+  clientName  String?     @map("client_name")
+  status      LogStatus   @default(SUCCESS)
+  message     String?     // Description or error message
+  requestData Json?       @map("request_data")    // Input data
+  responseData Json?      @map("response_data")   // Output/response data
+  errorDetails String?    @map("error_details")   // Stack trace or detailed error
+  duration    Int?        // Request duration in ms
+  ipAddress   String?     @map("ip_address")
+  userAgent   String?     @map("user_agent")
+  timestamp   DateTime    @default(now())
+  
+  // Relations
+  license     License?    @relation(fields: [licenseId], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@index([status])
+  @@index([timestamp])
+  @@index([licenseId])
+  @@index([action])
+  @@map("debug_logs")
+}
+
+enum LogCategory {
+  SYNC          // Synchronisation des données statistiques
+  PUSH_API      // Envoi des clés API aux sites clients
+  LICENSE       // Opérations sur les licences
+  API_USAGE     // Utilisation des APIs (OpenAI, DeepL, SMS, Email)
+  POI           // Opérations sur les points d'intérêt
+  AUTH          // Authentification et autorisations
+  PRICING       // Système de tarification SMS
+  SYSTEM        // Logs système généraux
+  ERROR         // Erreurs critiques
+}
+
+enum LogStatus {
+  SUCCESS
+  WARNING
+  ERROR
+  INFO
 }

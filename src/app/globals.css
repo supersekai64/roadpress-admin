@@ -117,3 +117,17 @@
 canvas {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
+
+/* Désactiver l'autocomplétion sur tous les inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="tel"],
+textarea {
+  -webkit-autocomplete: off;
+  -webkit-autofill: off;
+  -moz-autocomplete: off;
+  autocomplete: off;
+}

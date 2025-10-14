@@ -101,14 +101,14 @@ export default function ReportsPage() {
       const summaryData = [
         ['RAPPORT SMS'],
         [''],
-        ['Client:', clientName],
-        ['Année:', selectedYear],
-        ['Date d\'export:', format(new Date(), 'dd/MM/yyyy HH:mm', { locale: fr })],
+        ['Client :', clientName],
+        ['Année :', selectedYear],
+        ['Date d\'export :', format(new Date(), 'dd/MM/yyyy HH:mm', { locale: fr })],
         [''],
         ['TOTAUX ANNUELS'],
-        ['Total SMS envoyés:', yearlyTotals.totalSms],
-        ['Coût total:', `${yearlyTotals.totalCost.toFixed(2)} €`],
-        ['Coût moyen par SMS:', `${(yearlyTotals.totalCost / yearlyTotals.totalSms).toFixed(4)} €`],
+        ['Total SMS envoyés :', yearlyTotals.totalSms],
+        ['Coût total :', `${yearlyTotals.totalCost.toFixed(2)} €`],
+        ['Coût moyen par SMS :', `${(yearlyTotals.totalCost / yearlyTotals.totalSms).toFixed(4)} €`],
       ];
 
       const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
@@ -158,8 +158,8 @@ export default function ReportsPage() {
         const monthSheetData: (string | number)[][] = [
           [monthData.month.toUpperCase()],
           [''],
-          ['Total SMS:', monthData.totalSms],
-          ['Coût total:', `${monthData.totalCost.toFixed(2)} €`],
+          ['Total SMS :', monthData.totalSms],
+          ['Coût total :', `${monthData.totalCost.toFixed(2)} €`],
           [''],
           ['DÉTAIL PAR PAYS'],
           ['Pays', 'Nombre de SMS', 'Coût total (€)', 'Coût unitaire (€)', '% du mois'],
@@ -245,10 +245,19 @@ export default function ReportsPage() {
 
       XLSX.utils.book_append_sheet(workbook, countrySheet, 'Récap. par Pays');
 
+      // Fonction pour convertir en Title Case
+      const toTitleCase = (str: string) => {
+        return str
+          .toLowerCase()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      };
+
       // Générer et télécharger le fichier Excel
       XLSX.writeFile(
         workbook,
-        `rapport-sms-${clientName.toLowerCase().replace(/\s+/g, '-')}-${selectedYear}-${timestamp}.xlsx`
+        `Roadpress - Rapport SMS ${selectedYear} (${toTitleCase(clientName)}).xlsx`
       );
 
       toast({

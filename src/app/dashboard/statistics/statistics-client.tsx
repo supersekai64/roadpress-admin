@@ -431,8 +431,8 @@ export default function StatisticsPage() {
             />
             <StatCard
               title="Coût estimé"
-              value={`${deeplCost.toFixed(2)} $`}
-              subtitle={`$20 pour 1.000.000 tokens`}
+              value={`${deeplCost.toFixed(3)} $`}
+              subtitle={`≈ 20 $ pour 1.000.000 tokens`}
               icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
             />
           </div>
@@ -476,7 +476,7 @@ export default function StatisticsPage() {
             <StatCard
               title="Coût estimé"
               value={`${openaiCost.toFixed(3)} $`}
-              subtitle={`≈ $0,775 pour 1.000.000 tokens`}
+              subtitle={`≈ 0,775 $ pour 1.000.000 tokens`}
               tooltipContent="Hypothèse moyenne pour 70% input et 30% output"
               icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
             />
