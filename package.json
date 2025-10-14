@@ -24,7 +24,8 @@
     "url": "https://github.com/yourusername/nextjs-starter-template"
   },
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
+    "dev:turbo": "next dev --turbopack",
     "dev:clean": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-clean.ps1",
     "optimize:images": "node scripts/optimize-images.js",
     "deploy": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy.ps1",

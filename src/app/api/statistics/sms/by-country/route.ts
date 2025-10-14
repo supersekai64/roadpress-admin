@@ -19,8 +19,12 @@ export async function GET(request: NextRequest) {
     const startDate = startDateParam ? new Date(startDateParam) : new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endDate = endDateParam ? new Date(endDateParam) : new Date();
 
-    const whereClause: { sendDate?: { gte: Date; lte: Date }; licenseId?: string; status?: string } = {
-      sendDate: { gte: startDate, lte: endDate },
+    // Ajouter 1 jour à endDate pour inclure toute la journée (23:59:59)
+    const endDateInclusive = new Date(endDate);
+    endDateInclusive.setDate(endDateInclusive.getDate() + 1);
+
+    const whereClause: { sendDate?: { gte: Date; lt: Date }; licenseId?: string; status?: string } = {
+      sendDate: { gte: startDate, lt: endDateInclusive },
       status: 'delivered', // Ne compter que les SMS délivrés
     };
 
@@ -28,14 +32,20 @@ export async function GET(request: NextRequest) {
       whereClause.licenseId = licenseId;
     }
 
+    console.log('SMS by country - whereClause:', whereClause);
+
     // Récupérer tous les logs SMS
     const smsLogs = await prisma.smsLog.findMany({
       where: whereClause,
       select: {
         country: true,
         cost: true,
+        sendDate: true,
       },
     });
+
+    console.log('SMS by country - found logs:', smsLogs.length);
+    console.log('SMS by country - sample logs:', smsLogs.slice(0, 3));
 
     // Grouper par pays
     const byCountry = smsLogs.reduce((acc: Record<string, { count: number; totalCost: number }>, log) => {
