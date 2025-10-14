@@ -236,18 +236,18 @@ export default function ApiKeysPage() {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 md:grid-rows-2">
         {Object.entries(SERVICE_INFO).map(([service, info]) => {
           const apiKey = apiKeys.find((k) => k.service === service);
           const hasKey = apiKey?.key && apiKey.key !== '';
           const isActive = apiKey?.isActive ?? false;
 
           return (
-            <Card key={service}>
+            <Card key={service} className="h-full flex flex-col">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <info.logo className="w-10 h-10 rounded-lg" />
+                    <info.logo className="w-10 h-10 p-1.5 rounded-md" />
                     <div>
                       <CardTitle>{info.name}</CardTitle>
                       <CardDescription>{info.description}</CardDescription>
@@ -270,11 +270,11 @@ export default function ApiKeysPage() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className={cn("space-y-4", !hasKey && "flex-1 flex flex-col")}>
                 {hasKey ? (
                   <>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Clé API</Label>
+                      <Label className="text-sm text-muted-foreground">Clé API</Label>
                       <div className="flex items-center gap-2 mt-1">
                         <code className="text-xs bg-muted px-2 py-1 rounded flex-1">
                           {apiKey?.key}
@@ -284,7 +284,7 @@ export default function ApiKeysPage() {
 
                     {apiKey?.lastPush && (
                       <div>
-                        <Label className="text-xs text-muted-foreground">
+                        <Label className="text-sm text-muted-foreground">
                           Dernière mise à jour
                         </Label>
                         <p className="text-sm mt-1">
@@ -314,10 +314,7 @@ export default function ApiKeysPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-4">
-                    <div className="flex justify-center mb-4">
-                      <info.logo className="w-16 h-16 rounded-lg opacity-50" />
-                    </div>
+                  <div className="flex-1 flex flex-col items-center justify-center text-center">
                     <p className="text-sm text-muted-foreground mb-4">
                       Aucune clé configurée
                     </p>

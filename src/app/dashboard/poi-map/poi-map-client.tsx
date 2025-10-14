@@ -352,7 +352,7 @@ export default function PoiMapClient() {
                         strokeWidth="1.5"
                       />
                     </div>
-                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg border border-border min-w-max z-10">
+                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg border border-border min-w-max z-10">
                       <div className="font-semibold">{poi.name}</div>
                       <div className="text-muted-foreground">{poi.license.clientName}</div>
                       <div className="text-muted-foreground">{poi.visitCount} visites</div>

@@ -72,10 +72,10 @@ function StatCard({ title, value, icon, trend, trendUp, subtitle }: StatCardProp
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
         {subtitle && (
-          <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+          <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
         )}
         {trend && (
-          <p className={`text-xs flex items-center gap-1 mt-1 ${
+          <p className={`text-sm flex items-center gap-1 mt-1 ${
             trendUp ? 'text-green-600' : 'text-red-600'
           }`}>
             {trendUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
@@ -203,27 +203,26 @@ export default function StatisticsPage() {
   // Préparer les données pour les graphiques Email
   const emailChartData = emailData?.stats.map((stat: { createdAt: string; emailsSent: number }) => ({
     date: format(new Date(stat.createdAt), 'dd/MM', { locale: fr }),
-    Envoyés: stat.emailsSent,
+    Envoyé: stat.emailsSent,
   })) || [];
 
   // Préparer les données pour les graphiques SMS
   const smsChartData = smsData?.stats.map((stat: { createdAt: string; smsSent: number }) => ({
     date: format(new Date(stat.createdAt), 'dd/MM', { locale: fr }),
-    Envoyés: stat.smsSent,
+    Envoyé: stat.smsSent,
   })) || [];
 
   // Préparer les données pour DeepL
   const deeplChartData = deeplData?.stats.map((stat: { createdAt: string; translationsCount: number; charactersTranslated: number }) => ({
     date: format(new Date(stat.createdAt), 'dd/MM', { locale: fr }),
-    Traductions: stat.translationsCount,
-    Caractères: stat.charactersTranslated,
+    'Caractère traduit': stat.charactersTranslated,
   })) || [];
 
   // Préparer les données pour OpenAI
   const openaiChartData = openaiData?.stats.map((stat: { createdAt: string; requestsCount: number; totalTokens: number }) => ({
     date: format(new Date(stat.createdAt), 'dd/MM', { locale: fr }),
-    Requêtes: stat.requestsCount,
-    'Tokens (x1000)': Math.round(stat.totalTokens / 1000),
+    Requête: stat.requestsCount,
+    'Token (x1000)': Math.round(stat.totalTokens / 1000),
   })) || [];
 
   return (
@@ -311,7 +310,7 @@ export default function StatisticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <SimpleChart data={emailChartData} dataKeys={['Envoyés']} type="bar" height={350} />
+              <SimpleChart data={emailChartData} dataKeys={['Envoyé']} type="bar" height={350} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -340,7 +339,7 @@ export default function StatisticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <SimpleChart data={smsChartData} dataKeys={['Envoyés']} type="bar" height={350} />
+              <SimpleChart data={smsChartData} dataKeys={['Envoyé']} type="bar" height={350} />
             </CardContent>
           </Card>
 
@@ -348,7 +347,7 @@ export default function StatisticsPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <div>
+                <div className="space-y-1.5">
                   <CardTitle>Détail par pays</CardTitle>
                   <CardDescription>
                     Répartition des SMS et coûts par pays de destination
@@ -406,8 +405,8 @@ export default function StatisticsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <StatCard
               title="Caractères traduits"
-              value={deeplData?.totals.totalCharacters.toLocaleString() || 0}
-              icon={<span className="text-muted-foreground">ABC</span>}
+              value={deeplData?.totals.totalCharacters?.toLocaleString() || 0}
+              icon={<Languages className="h-4 w-4 text-muted-foreground" />}
             />
             <StatCard
               title="Coût estimé"
@@ -419,13 +418,13 @@ export default function StatisticsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Caractères traduits</CardTitle>
+              <CardTitle>Utilisation DeepL</CardTitle>
               <CardDescription>
                 Volume de caractères traduits par jour
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <MixedChart data={deeplChartData} barKeys={['Caractères']} lineKeys={['Traductions']} height={350} />
+              <SimpleChart data={deeplChartData} dataKeys={['Caractère traduit']} type="bar" height={350} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -469,7 +468,7 @@ export default function StatisticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <MixedChart data={openaiChartData} barKeys={['Tokens (x1000)']} lineKeys={['Requêtes']} height={350} />
+              <MixedChart data={openaiChartData} barKeys={['Token (x1000)']} lineKeys={['Requête']} height={350} />
             </CardContent>
           </Card>
         </TabsContent>

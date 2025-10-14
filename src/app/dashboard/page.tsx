@@ -98,7 +98,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Licences total 
+              {stats.totalLicenses <= 1 ? 'Licence totale' : 'Licences totales'}
             </CardTitle>
             <FileKey className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Licences actives
+              {stats.activeLicenses <= 1 ? 'Licence active' : 'Licences actives'}
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -124,7 +124,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Licences expirées
+              {stats.expiredLicenses <= 1 ? 'Licence expirée' : 'Licences expirées'}
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Points d{`'`}intérêt
+              {stats.totalPois <= 1 ? `Point d'intérêt` : `Points d'intérêt`}
             </CardTitle>
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -155,13 +155,15 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">DeepL</CardTitle>
-              <DeepLLogo className="h-5 w-5 rounded" withBackground />
+              <DeepLLogo className="h-8 w-8 p-1.5 rounded" withBackground />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 {stats.yearStats.deepl.characters.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground mb-2">caractères traduits</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                {stats.yearStats.deepl.characters <= 1 ? 'caractère traduit' : 'caractères traduits'}
+              </p>
               <div className="text-lg font-semibold text-primary text-right">
                 {stats.yearStats.deepl.cost.toFixed(2)} €
               </div>
@@ -171,13 +173,15 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">OpenAI</CardTitle>
-              <OpenAILogo className="h-5 w-5 rounded" withBackground />
+              <OpenAILogo className="h-8 w-8 p-1.5 rounded" withBackground />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 {stats.yearStats.openai.tokens.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground mb-2">tokens consommés</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                {stats.yearStats.openai.tokens <= 1 ? 'token consommé' : 'tokens consommés'}
+              </p>
               <div className="text-lg font-semibold text-primary text-right">
                 {stats.yearStats.openai.cost.toFixed(2)} €
               </div>
@@ -187,13 +191,15 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Brevo (SMS)</CardTitle>
-              <BrevoLogo className="h-5 w-5 rounded" withBackground />
+              <BrevoLogo className="h-8 w-8 p-1.5 rounded" withBackground />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 {stats.yearStats.sms.sent.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground mb-2">SMS envoyés</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                {stats.yearStats.sms.sent <= 1 ? 'SMS envoyé' : 'SMS envoyés'}
+              </p>
               <div className="text-lg font-semibold text-primary text-right">
                 {stats.yearStats.sms.cost.toFixed(2)} €
               </div>
@@ -203,13 +209,15 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Brevo (E-mail)</CardTitle>
-              <BrevoLogo className="h-5 w-5 rounded" withBackground />
+              <BrevoLogo className="h-8 w-8 p-1.5 rounded" withBackground />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 {stats.yearStats.email.sent.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground mb-2">E-mails envoyés</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                {stats.yearStats.email.sent <= 1 ? 'E-mail envoyé' : 'E-mails envoyés'}
+              </p>
             </CardContent>
           </Card>
         </div>

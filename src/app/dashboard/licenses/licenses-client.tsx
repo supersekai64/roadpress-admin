@@ -314,7 +314,7 @@ export default function LicensesPage() {
               <p className="text-muted-foreground mb-4">Aucune licence trouvée</p>
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Créer la première licence
+                Créer une licence
               </Button>
             </div>
           ) : (
