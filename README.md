@@ -2,11 +2,26 @@
 
 Interface web moderne pour la gestion centralisée des licences, statistiques API et points d'intérêt (POI) RoadPress.
 
+## 🎯 Configuration Automatique
+
+**Plus besoin de modifier le schema Prisma entre local et production !**
+
+```bash
+# 🔧 Local: PostgreSQL classique (Docker)
+pnpm setup:env  # Guide de configuration automatique
+pnpm docker:up  # Démarre PostgreSQL
+pnpm dev        # C'est parti !
+
+# 🚀 Production: Prisma Accelerate (Vercel)
+# Configurez DATABASE_URL dans le dashboard Vercel
+# Le même code fonctionne partout ✨
+```
+
 ## Stack Technique
 
 - **Framework** : Next.js 15 (App Router)
 - **Language** : TypeScript (strict mode)
-- **Base de données** : Vercel Postgres + Prisma ORM
+- **Base de données** : PostgreSQL + Prisma ORM (auto-config)
 - **Authentification** : NextAuth.js v5
 - **UI** : Tailwind CSS + shadcn/ui
 - **Graphiques** : Recharts

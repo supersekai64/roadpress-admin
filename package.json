@@ -47,7 +47,8 @@
     "db:seed:sms": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed-sms-reports.ts",
     "db:create-admin": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/create-admin.ts",
     "db:setup": "pnpm docker:up && timeout /t 5 /nobreak && pnpm db:push && pnpm db:seed",
-    "diagnose": "node scripts/diagnose-prisma.js"
+    "diagnose": "node scripts/diagnose-prisma.js",
+    "setup:env": "node scripts/setup-env.js"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

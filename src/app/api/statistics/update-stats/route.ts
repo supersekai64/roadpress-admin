@@ -42,40 +42,59 @@ export async function POST(request: NextRequest) {
 
     // Enregistrer les stats SMS par pays avec le système de pricing centralisé
     if (Array.isArray(sms_stats) && sms_stats.length > 0) {
-      // Importer le service de pricing SMS avec tous les tarifs réels
-      const { SmsPricingService } = await import('@/lib/sms-pricing');
+      try {
+        // Importer le service de pricing SMS avec tous les tarifs réels
+        const { SmsPricingService } = await import('@/lib/sms-pricing');
 
-      for (const stat of sms_stats) {
-        if (stat.country && stat.sms_count) {
-          // Utiliser le service centralisé pour le calcul des coûts
-          const costCalculation = SmsPricingService.calculateSMSCost(stat.country, stat.sms_count);
-          const costPerSms = costCalculation.unitPrice;
-          const totalCostForCountry = costCalculation.cost;
+        // Préparer toutes les opérations en batch pour éviter les problèmes de performance
+        const smsStatsOperations = [];
+        const smsLogOperations = [];
 
-          // Enregistrer dans SmsStats (pour les totaux globaux)
-          await prisma.smsStats.create({
-            data: {
+        for (const stat of sms_stats) {
+          if (stat.country && stat.sms_count && typeof stat.sms_count === 'number' && stat.sms_count > 0) {
+            // Utiliser le service centralisé pour le calcul des coûts
+            const costCalculation = SmsPricingService.calculateSMSCost(stat.country, stat.sms_count);
+            const costPerSms = costCalculation.unitPrice;
+            const totalCostForCountry = costCalculation.cost;
+
+            // Préparer l'opération SmsStats
+            smsStatsOperations.push({
               licenseId: license.id,
               smsSent: stat.sms_count,
               totalCost: totalCostForCountry,
-            },
-          });
+            });
 
-          // Créer un log par SMS pour permettre le détail par pays
-          // (chaque SMS individuel avec son coût)
-          for (let i = 0; i < stat.sms_count; i++) {
-            await prisma.smsLog.create({
-              data: {
+            // Préparer les opérations SmsLog (un par SMS)
+            for (let i = 0; i < stat.sms_count; i++) {
+              smsLogOperations.push({
                 licenseId: license.id,
-                phone: `+${stat.country.toLowerCase().replace(/\s+/g, '')}-${i + 1}`, // Numéro fictif unique
+                phone: `+${stat.country.toLowerCase().replace(/\s+/g, '')}-${Date.now()}-${i + 1}`, // Numéro unique avec timestamp
                 country: stat.country,
                 status: 'delivered',
                 cost: costPerSms,
                 sendDate: new Date(),
-              },
-            });
+              });
+            }
           }
         }
+
+        // Exécuter toutes les opérations en batch pour de meilleures performances
+        if (smsStatsOperations.length > 0) {
+          await prisma.smsStats.createMany({
+            data: smsStatsOperations,
+          });
+        }
+
+        if (smsLogOperations.length > 0) {
+          await prisma.smsLog.createMany({
+            data: smsLogOperations,
+          });
+        }
+
+        console.log(`SMS stats enregistrées: ${smsStatsOperations.length} stats, ${smsLogOperations.length} logs`);
+      } catch (smsError) {
+        console.error('Erreur spécifique SMS:', smsError);
+        throw new Error(`Erreur lors de l'enregistrement des stats SMS: ${smsError instanceof Error ? smsError.message : 'Erreur inconnue'}`);
       }
     }
 
@@ -85,8 +104,21 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Erreur enregistrement stats:', error);
+    
+    // Log détaillé pour diagnostic
+    if (error instanceof Error) {
+      console.error('Message d\'erreur:', error.message);
+      console.error('Stack trace:', error.stack);
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : 'Erreur serveur inconnue';
+    
     return NextResponse.json(
-      { success: false, message: 'Erreur serveur' },
+      { 
+        success: false, 
+        message: 'Erreur serveur',
+        debug: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
