@@ -10,12 +10,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Auto-détection : cherche DATABASE_URL puis PRISMA_DATABASE_URL
-  // En local : utilise DATABASE_URL (postgresql://)
-  // En prod Vercel : utilise PRISMA_DATABASE_URL (prisma://)
+  // Toujours configuré pour la production
   url      = env("DATABASE_URL")
-  // URL directe optionnelle (ignore si manquante)
-  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // =====================================================
