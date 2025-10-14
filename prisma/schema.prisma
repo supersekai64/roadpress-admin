@@ -10,11 +10,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // En production : utilise PRISMA_DATABASE_URL (Accelerate)
   // En développement : utilise DATABASE_URL (direct)
-  url      = env("PRISMA_DATABASE_URL")
-  // URL directe pour les migrations
-  directUrl = env("DIRECT_DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 // =====================================================
@@ -159,16 +156,17 @@ model SmsStatsMonthly {
 }
 
 model SmsLog {
-  id          String   @id @default(cuid())
-  licenseId   String   @map("license_id")
-  phone       String
-  country     String?
-  status      String   // sent, delivered, failed
-  cost        Decimal  @default(0) @db.Decimal(10, 4)
-  sendDate    DateTime @map("send_date")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id              String   @id @default(cuid())
+  licenseId       String   @map("license_id")
+  phone           String
+  country         String?
+  status          String   // sent, delivered, failed
+  cost            Decimal  @default(0) @db.Decimal(10, 4)
+  pricingVersion  String?  @map("pricing_version") // Version du tarif utilisé (ex: "2025-01")
+  sendDate        DateTime @map("send_date")
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  license     License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  license         License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
 
   @@index([licenseId])
   @@index([sendDate])
@@ -295,4 +293,42 @@ model ApiKey {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("api_keys")
+}
+
+// =====================================================
+// SMS PRICING HISTORY
+// =====================================================
+
+model SmsPricingVersion {
+  id          String   @id @default(cuid())
+  version     String   // Ex: "2025-01", "2025-02", etc.
+  description String?  // Ex: "Tarifs mis à jour janvier 2025"
+  isActive    Boolean  @default(false) // Une seule version active à la fois
+  effectiveFrom DateTime @map("effective_from") // Date d'entrée en vigueur
+  effectiveTo   DateTime? @map("effective_to")   // Date de fin (null = active)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  pricingRules SmsPricingRule[]
+
+  @@unique([version])
+  @@index([isActive])
+  @@index([effectiveFrom])
+  @@map("sms_pricing_versions")
+}
+
+model SmsPricingRule {
+  id          String   @id @default(cuid())
+  versionId   String   @map("version_id")
+  country     String   // Nom du pays (ex: "France", "Germany")
+  pricePerSms Decimal  @map("price_per_sms") @db.Decimal(10, 4) // Prix par SMS en euros
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  version     SmsPricingVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@unique([versionId, country])
+  @@index([country])
+  @@map("sms_pricing_rules")
 }

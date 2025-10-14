@@ -40,17 +40,41 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Enregistrer les stats SMS par pays
+    // Enregistrer les stats SMS par pays avec le système de pricing centralisé
     if (Array.isArray(sms_stats) && sms_stats.length > 0) {
+      // Importer le service de pricing SMS avec tous les tarifs réels
+      const { SmsPricingService } = await import('@/lib/sms-pricing');
+
       for (const stat of sms_stats) {
         if (stat.country && stat.sms_count) {
+          // Utiliser le service centralisé pour le calcul des coûts
+          const costCalculation = SmsPricingService.calculateSMSCost(stat.country, stat.sms_count);
+          const costPerSms = costCalculation.unitPrice;
+          const totalCostForCountry = costCalculation.cost;
+
+          // Enregistrer dans SmsStats (pour les totaux globaux)
           await prisma.smsStats.create({
             data: {
               licenseId: license.id,
               smsSent: stat.sms_count,
-              totalCost: 0,
+              totalCost: totalCostForCountry,
             },
           });
+
+          // Créer un log par SMS pour permettre le détail par pays
+          // (chaque SMS individuel avec son coût)
+          for (let i = 0; i < stat.sms_count; i++) {
+            await prisma.smsLog.create({
+              data: {
+                licenseId: license.id,
+                phone: `+${stat.country.toLowerCase().replace(/\s+/g, '')}-${i + 1}`, // Numéro fictif unique
+                country: stat.country,
+                status: 'delivered',
+                cost: costPerSms,
+                sendDate: new Date(),
+              },
+            });
+          }
         }
       }
     }

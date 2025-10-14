@@ -454,7 +454,7 @@ export default function StatisticsPage() {
             />
             <StatCard
               title="Coût estimé"
-              value={`${openaiCost.toFixed(2)} €`}
+              value={`${openaiCost.toFixed(3)} €`}
               subtitle={`≈ 0.0000016€ par token`}
               icon={<Euro className="h-4 w-4 text-muted-foreground" />}
             />
