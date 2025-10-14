@@ -27,6 +27,7 @@
     "dev": "next dev --turbopack",
     "dev:clean": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-clean.ps1",
     "optimize:images": "node scripts/optimize-images.js",
+    "deploy": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy.ps1",
     "build": "prisma generate --no-engine && next build",
     "postinstall": "prisma generate",
     "analyze": "cross-env ANALYZE=true pnpm build",
@@ -47,6 +48,7 @@
     "db:setup": "pnpm docker:up && timeout /t 5 /nobreak && pnpm db:push && pnpm db:seed"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.4.1",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.17.1",
     "@radix-ui/react-avatar": "^1.1.10",
