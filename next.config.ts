@@ -20,7 +20,17 @@ const nextConfig: NextConfig = {
   // Compiler uniquement les packages nécessaires en mode serveur
   serverExternalPackages: ['@prisma/client', 'bcryptjs'],
 
-  // Optimiser le bundling
+  // Configuration Turbopack (utilisé en dev avec Next.js 15)
+  turbopack: {
+    resolveAlias: {
+      // Désactiver les modules Node.js côté client (équivalent webpack fallback)
+      'fs': '',
+      'net': '',
+      'tls': '',
+    },
+  },
+
+  // Optimiser le bundling (Webpack - utilisé pour le build production)
   webpack: (config, { isServer }) => {
     // Ne pas bundler Prisma côté client
     if (!isServer) {
@@ -35,15 +45,26 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // Headers de cache pour les assets statiques
+  // Headers de cache pour les assets statiques + Blocage robots
   async headers() {
     return [
+      // Cache pour les assets statiques
       {
         source: '/:all*(svg|jpg|jpeg|png|gif|ico|webp|avif)',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Bloquer l'indexation sur TOUTES les pages
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow, noarchive, nosnippet, noimageindex, nocache',
           },
         ],
       },

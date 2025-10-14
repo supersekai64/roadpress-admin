@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,10 +45,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">RoadPress Admin</CardTitle>
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="flex flex-col items-center gap-8 w-full max-w-md">
+        <Image
+          src="/images/roadpress-w.svg"
+          alt="Roadpress"
+          width={200}
+          height={60}
+          priority
+          className="w-full h-16"
+        />
+        <Card className="w-full">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold">Interface d&apos;administration</CardTitle>
           <CardDescription>
             Connectez-vous pour accéder au tableau de bord
           </CardDescription>
@@ -55,12 +65,12 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Adresse e-mail</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="admin@roadpress.com"
+                placeholder=""
                 required
                 disabled={isLoading}
               />
@@ -89,6 +99,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

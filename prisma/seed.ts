@@ -8,7 +8,8 @@ async function main() {
 
   // Créer un utilisateur admin par défaut
   // ⚠️ En production, le mot de passe doit être changé via SQL (voir UPDATE-PASSWORD-PROD.md)
-  const hashedPassword = '$2b$10$RigKTagJfLPdKNals8Nqz.wWlGKiQTbmyM1U0ClrBFCE5OTp6me6e';
+  // Mot de passe: admin123
+  const hashedPassword = '$2b$10$gH4Rg1YDjCliPyY1y6e3R.82HNOy0AQAmy.yP0RHoYFQqkGLeJPbK';
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@roadpress.com' },

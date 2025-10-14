@@ -14,6 +14,22 @@ export const metadata: Metadata = {
   title: "Administration - Roadpress",
   description: "Interface de gestion centralisée pour Roadpress - Licences, Statistiques API et POI",
   metadataBase: new URL("https://roadpress.vercel.app"),
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    noarchive: true,
+    nosnippet: true,
+    noimageindex: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      'max-video-preview': 0,
+      'max-image-preview': 'none',
+      'max-snippet': 0,
+    },
+  },
+  
   icons: {
     icon: [
       { url: '/images/favicon.svg', type: 'image/svg+xml' },
