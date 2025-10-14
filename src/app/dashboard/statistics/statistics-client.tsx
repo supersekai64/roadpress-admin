@@ -5,9 +5,15 @@ import { useQuery } from '@tanstack/react-query';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
-import { Mail, MessageSquare, Languages, Sparkles, TrendingUp, TrendingDown, Euro, Search } from 'lucide-react';
+import { Mail, MessageSquare, Languages, Sparkles, TrendingUp, TrendingDown, DollarSign, Search, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DateRangePicker } from '@/components/date-range-picker';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -37,8 +43,8 @@ import { SimpleChart, MixedChart } from '@/components/simple-chart';
 // Tarifs pour calcul des coûts
 const PRICING = {
   DEEPL_PER_CHAR: 0.00002, // 0.00002€ par caractère
-  OPENAI_PER_TOKEN: 0.0000016, // 0.0000016€ par token
-  SMS_BASE: 0.05, // Coût moyen SMS (sera plus précis avec les tarifs par pays)
+  OPENAI_PER_TOKEN: 0.000000775, // $0.000000775 par token
+  SMS_BASE: 0.05, // Coût unitaire SMS (sera plus précis avec les tarifs par pays)
 };
 
 const PERIOD_PRESETS = [
@@ -60,9 +66,10 @@ interface StatCardProps {
   readonly trend?: string;
   readonly trendUp?: boolean;
   readonly subtitle?: string;
+  readonly tooltipContent?: string;
 }
 
-function StatCard({ title, value, icon, trend, trendUp, subtitle }: StatCardProps) {
+function StatCard({ title, value, icon, trend, trendUp, subtitle, tooltipContent }: StatCardProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -72,7 +79,21 @@ function StatCard({ title, value, icon, trend, trendUp, subtitle }: StatCardProp
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
         {subtitle && (
-          <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+          <div className="flex items-center gap-1 mt-1">
+            <p className="text-sm text-muted-foreground">{subtitle}</p>
+            {tooltipContent && (
+              <TooltipProvider delayDuration={0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 ml-1 mt-[1px] text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{tooltipContent}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         )}
         {trend && (
           <p className={`text-sm flex items-center gap-1 mt-1 ${
@@ -327,7 +348,7 @@ export default function StatisticsPage() {
               title="Coût total"
               value={`${(smsData?.totals.totalCost || 0)} €`}
               subtitle="Coût réel basé sur les tarifs par pays"
-              icon={<Euro className="h-4 w-4 text-muted-foreground" />}
+              icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
             />
           </div>
 
@@ -371,7 +392,7 @@ export default function StatisticsPage() {
                     <TableHead>Pays</TableHead>
                     <TableHead className="text-right">Nombre de SMS</TableHead>
                     <TableHead className="text-right">Coût total</TableHead>
-                    <TableHead className="text-right">Coût moyen</TableHead>
+                    <TableHead className="text-right">Coût unitaire</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -410,9 +431,9 @@ export default function StatisticsPage() {
             />
             <StatCard
               title="Coût estimé"
-              value={`${deeplCost.toFixed(2)} €`}
-              subtitle={`≈ 0.00002€ par caractère`}
-              icon={<Euro className="h-4 w-4 text-muted-foreground" />}
+              value={`${deeplCost.toFixed(2)} $`}
+              subtitle={`$20 pour 1.000.000 tokens`}
+              icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
             />
           </div>
 
@@ -454,9 +475,10 @@ export default function StatisticsPage() {
             />
             <StatCard
               title="Coût estimé"
-              value={`${openaiCost.toFixed(3)} €`}
-              subtitle={`≈ 0.0000016€ par token`}
-              icon={<Euro className="h-4 w-4 text-muted-foreground" />}
+              value={`${openaiCost.toFixed(3)} $`}
+              subtitle={`≈ $0,775 pour 1.000.000 tokens`}
+              tooltipContent="Hypothèse moyenne pour 70% input et 30% output"
+              icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
             />
           </div>
 

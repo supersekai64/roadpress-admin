@@ -125,7 +125,7 @@ export default function ReportsPage() {
       const monthlyData: (string | number)[][] = [
         ['DÉTAIL MENSUEL'],
         [''],
-        ['Mois', 'Nombre de SMS', 'Coût total (€)', 'Coût moyen (€)'],
+        ['Mois', 'Nombre de SMS', 'Coût total (€)', 'Coût unitaire (€)'],
       ];
 
       for (const monthData of smsStats) {
@@ -162,7 +162,7 @@ export default function ReportsPage() {
           ['Coût total:', `${monthData.totalCost.toFixed(2)} €`],
           [''],
           ['DÉTAIL PAR PAYS'],
-          ['Pays', 'Nombre de SMS', 'Coût total (€)', 'Coût moyen (€)', '% du mois'],
+          ['Pays', 'Nombre de SMS', 'Coût total (€)', 'Coût unitaire (€)', '% du mois'],
         ];
 
         for (const country of monthData.byCountry) {
@@ -212,7 +212,7 @@ export default function ReportsPage() {
       const countryData: (string | number)[][] = [
         ['RÉCAPITULATIF PAR PAYS'],
         [''],
-        ['Pays', 'Nombre de SMS', 'Coût total (€)', 'Coût moyen (€)', '% de l\'année'],
+        ['Pays', 'Nombre de SMS', 'Coût total (€)', 'Coût unitaire (€)', '% de l\'année'],
       ];
 
       const sortedCountries = Object.entries(countryTotals).sort(
