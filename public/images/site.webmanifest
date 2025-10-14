@@ -1,0 +1,23 @@
+{
+  "name": "RoadPress Admin",
+  "short_name": "RoadPress",
+  "description": "Interface de gestion centralisée pour RoadPress",
+  "icons": [
+    {
+      "src": "/images/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/dashboard",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}

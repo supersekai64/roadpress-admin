@@ -245,7 +245,38 @@ export default function PoiMapClient() {
             onMove={(evt) => setViewState(evt.viewState)}
             mapStyle="mapbox://styles/mapbox/light-v11"
             mapboxAccessToken={MAPBOX_ADMIN_TOKEN}
-            style={{ width: "100%", height: "600px" }}
+            style={{ width: "100%", height: "600px", borderRadius: "0.5rem", overflow: "hidden" }}
+            onLoad={() => {
+              // Re-centrer la carte une fois qu'elle est chargée
+              if (filteredPois.length > 0 && mapRef.current) {
+                const bounds = filteredPois.reduce(
+                  (acc, poi) => {
+                    return {
+                      minLng: Math.min(acc.minLng, poi.longitude),
+                      maxLng: Math.max(acc.maxLng, poi.longitude),
+                      minLat: Math.min(acc.minLat, poi.latitude),
+                      maxLat: Math.max(acc.maxLat, poi.latitude),
+                    };
+                  },
+                  {
+                    minLng: Infinity,
+                    maxLng: -Infinity,
+                    minLat: Infinity,
+                    maxLat: -Infinity,
+                  }
+                );
+
+                if (bounds.minLng !== Infinity) {
+                  mapRef.current.fitBounds(
+                    [
+                      [bounds.minLng, bounds.minLat],
+                      [bounds.maxLng, bounds.maxLat],
+                    ],
+                    { padding: 100, duration: 1000, maxZoom: 12 }
+                  );
+                }
+              }
+            }}
           >
             <NavigationControl position="top-right" />
             <FullscreenControl position="top-right" />

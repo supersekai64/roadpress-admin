@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
  * POST /api/admin/create-admin
  * Body: { secret: "votre-secret-de-creation-admin" }
  * 
- * ⚠️ ATTENTION : Cet endpoint est protégé par un secret
+ * ATTENTION : Cet endpoint est protégé par un secret
  * Utilisez-le uniquement pour initialiser la base de données
  */
 export async function POST(request: NextRequest) {

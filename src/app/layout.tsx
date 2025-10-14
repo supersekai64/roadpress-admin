@@ -11,11 +11,21 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "RoadPress Admin - Dashboard",
-  description: "Interface de gestion centralisée pour RoadPress - Licences, Statistiques API et POI",
-  keywords: ["roadpress", "admin", "dashboard", "licenses", "statistics"],
-  authors: [{ name: "Paul C" }],
+  title: "Administration - Roadpress",
+  description: "Interface de gestion centralisée pour Roadpress - Licences, Statistiques API et POI",
   metadataBase: new URL("https://roadpress.vercel.app"),
+  icons: {
+    icon: [
+      { url: '/images/favicon.svg', type: 'image/svg+xml' },
+      { url: '/images/favicon.ico', sizes: '32x32' },
+      { url: '/images/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+    ],
+    
+    apple: [
+      { url: '/images/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  manifest: '/images/site.webmanifest',
 };
 
 export default function RootLayout({

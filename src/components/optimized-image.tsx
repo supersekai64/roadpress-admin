@@ -10,20 +10,6 @@ interface OptimizedImageProps {
   sizes?: string;
 }
 
-/**
- * Composant d'image optimise qui charge automatiquement
- * le format le plus leger (AVIF > WebP > Original)
- * 
- * Les images optimisees doivent etre dans /public/optimized/
- * 
- * @example
- * <OptimizedImage 
- *   src="/images/hero.jpg" 
- *   alt="Hero"
- *   width={1920}
- *   height={1080}
- * />
- */
 export function OptimizedImage({
   src,
   alt,
@@ -33,7 +19,6 @@ export function OptimizedImage({
   priority = false,
   sizes,
 }: OptimizedImageProps) {
-  // Extraire le nom du fichier sans extension
   const getOptimizedPath = (format: 'avif' | 'webp') => {
     const pathParts = src.split('/');
     const fileName = pathParts[pathParts.length - 1];
@@ -45,21 +30,21 @@ export function OptimizedImage({
 
   return (
     <picture>
-      {/* Format AVIF (le plus leger) */}
+      {/* Format AVIF */}
       <source
         type="image/avif"
         srcSet={getOptimizedPath('avif')}
         sizes={sizes}
       />
       
-      {/* Format WebP (fallback) */}
+      {/* Format WebP */}
       <source
         type="image/webp"
         srcSet={getOptimizedPath('webp')}
         sizes={sizes}
       />
       
-      {/* Image originale (fallback final) */}
+      {/* Image originale */}
       <Image
         src={src}
         alt={alt}

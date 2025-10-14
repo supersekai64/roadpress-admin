@@ -30,7 +30,7 @@ export function Header({ user }: HeaderProps) {
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-6">
       <div className="flex items-center gap-4">
-        <h1 className="text-xl font-semibold">Tableau de bord</h1>
+        {/* Placeholder pour aligner à droite */}
       </div>
 
       <div className="flex items-center gap-4">

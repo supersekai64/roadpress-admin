@@ -89,7 +89,7 @@ export default async function DashboardPage() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
         <p className="text-muted-foreground">
-          Vue d{`'`}ensemble de votre plateforme RoadPress
+          Vue d{`'`}ensemble de votre plateforme Roadpress
         </p>
       </div>
 
@@ -98,53 +98,40 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Licences
+              Licences total 
             </CardTitle>
             <FileKey className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalLicenses}</div>
-            <p className="text-xs text-muted-foreground">
-              Toutes les licences créées
-            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Licences Actives
+              Licences actives
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <div className="text-2xl font-bold">{stats.activeLicenses}</div>
-              <Badge variant="default" className="bg-green-500">
-                Actif
-              </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              En cours d{`'`}utilisation
-            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Licences Expirées
+              Licences expirées
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <div className="text-2xl font-bold">{stats.expiredLicenses}</div>
-              <Badge variant="destructive">Expiré</Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              À renouveler
-            </p>
           </CardContent>
         </Card>
 
@@ -157,15 +144,12 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalPois}</div>
-            <p className="text-xs text-muted-foreground">
-              POIs synchronisés
-            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Coûts globaux depuis le début de l'année */}
-      <div>
+      <div className="pt-4">
         <h3 className="text-xl font-bold mb-4">Coûts globaux {new Date().getFullYear()}</h3>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>

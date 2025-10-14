@@ -1,7 +1,10 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -47,16 +50,32 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Attendre que le composant soit monté côté client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Pendant l'hydratation, utiliser le logo blanc (correspond au dark par défaut)
+  // Une fois monté, utiliser le thème résolu
+  const isDark = mounted ? resolvedTheme === 'dark' : true;
+  const logoSrc = isDark ? '/images/roadpress-w.svg' : '/images/roadpress-b.svg';
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-card">
       {/* Logo */}
       <div className="flex h-16 items-center border-b px-6">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <span className="text-lg font-bold">R</span>
-          </div>
-          <span className="text-xl font-bold">RoadPress</span>
+        <Link href="/dashboard" className="flex items-center">
+          <Image
+            src={logoSrc}
+            alt="Roadpress"
+            width={140}
+            height={36}
+            className="shrink-0"
+            priority
+          />
         </Link>
       </div>
 
@@ -70,6 +89,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive

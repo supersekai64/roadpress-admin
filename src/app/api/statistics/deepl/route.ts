@@ -19,30 +19,57 @@ export async function GET(request: NextRequest) {
     const startDate = startDateParam ? new Date(startDateParam) : new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endDate = endDateParam ? new Date(endDateParam) : new Date();
 
-    const whereClause: { createdAt?: { gte: Date; lte: Date }; licenseId?: string } = {
-      createdAt: { gte: startDate, lte: endDate },
+    // Ajouter 1 jour à endDate pour inclure toute la journée (23:59:59)
+    const endDateInclusive = new Date(endDate);
+    endDateInclusive.setDate(endDateInclusive.getDate() + 1);
+
+    const whereClause: { createdAt?: { gte: Date; lt: Date }; licenseId?: string } = {
+      createdAt: { gte: startDate, lt: endDateInclusive },
     };
 
     if (licenseId && licenseId !== 'all') {
       whereClause.licenseId = licenseId;
     }
 
-    const stats = await prisma.deeplStats.findMany({
+    // Récupérer les stats et les grouper par jour
+    const statsRaw = await prisma.deeplStats.findMany({
       where: whereClause,
       orderBy: { createdAt: 'asc' },
-      include: {
-        license: {
-          select: {
-            clientName: true,
-            licenseKey: true,
-          },
-        },
+      select: {
+        createdAt: true,
+        translationsCount: true,
+        charactersTranslated: true,
       },
     });
 
+    // Grouper par jour (format YYYY-MM-DD)
+    const groupedByDay = statsRaw.reduce((acc: Record<string, { createdAt: Date; translationsCount: number; charactersTranslated: number }>, stat) => {
+      const dayKey = stat.createdAt.toISOString().split('T')[0];
+      if (!acc[dayKey]) {
+        acc[dayKey] = { createdAt: new Date(dayKey), translationsCount: 0, charactersTranslated: 0 };
+      }
+      acc[dayKey].translationsCount += stat.translationsCount;
+      acc[dayKey].charactersTranslated += stat.charactersTranslated;
+      return acc;
+    }, {});
+
+    // Remplir tous les jours entre startDate et endDate (même ceux sans données)
+    const allDays: Record<string, { createdAt: Date; translationsCount: number; charactersTranslated: number }> = {};
+    const currentDate = new Date(startDate);
+    const end = new Date(endDate);
+    
+    while (currentDate <= end) {
+      const dayKey = currentDate.toISOString().split('T')[0];
+      allDays[dayKey] = groupedByDay[dayKey] || { createdAt: new Date(dayKey), translationsCount: 0, charactersTranslated: 0 };
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    // Convertir en tableau
+    const stats = Object.values(allDays).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
     const totals = {
-      totalTranslations: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.translationsCount, 0),
-      totalCharacters: stats.reduce((sum: number, s: typeof stats[0]) => sum + s.charactersTranslated, 0),
+      totalTranslations: stats.reduce((sum, s) => sum + s.translationsCount, 0),
+      totalCharacters: stats.reduce((sum, s) => sum + s.charactersTranslated, 0),
     };
 
     return NextResponse.json({
