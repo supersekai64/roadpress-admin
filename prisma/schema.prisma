@@ -10,7 +10,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // En production : utilise PRISMA_DATABASE_URL (Accelerate)
+  // En développement : utilise DATABASE_URL (direct)
+  url      = env("PRISMA_DATABASE_URL")
+  // URL directe pour les migrations
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 // =====================================================
