@@ -51,26 +51,30 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // 2. Bloquer les bots SEO/IA (sauf pour les endpoints API publics)
+  // 2. Autoriser les API publiques SANS auth middleware (gèrent leur propre auth)
   const isPublicApi = request.nextUrl.pathname.match(
     /^\/api\/(auth|debug|licenses\/(verify|update|disassociate)|statistics|api-keys|poi\/sync)/
   );
   
-  if (!isPublicApi) {
-    const isBot = BLOCKED_BOTS.some(bot => userAgent.includes(bot));
-    
-    if (isBot) {
-      console.log(`🚫 Bot bloqué: ${userAgent}`);
-      return new NextResponse('Access Denied', { 
-        status: 403,
-        headers: {
-          'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet, noimageindex',
-        },
-      });
-    }
+  if (isPublicApi) {
+    // API publiques : passer sans auth middleware
+    return NextResponse.next();
   }
   
-  // 3. Authentification NextAuth pour les routes protégées
+  // 3. Bloquer les bots SEO/IA sur les routes protégées
+  const isBot = BLOCKED_BOTS.some(bot => userAgent.includes(bot));
+  
+  if (isBot) {
+    console.log(`🚫 Bot bloqué: ${userAgent}`);
+    return new NextResponse('Access Denied', { 
+      status: 403,
+      headers: {
+        'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet, noimageindex',
+      },
+    });
+  }
+  
+  // 4. Authentification NextAuth pour les routes protégées
   return auth(request as any) as any;
 }
 

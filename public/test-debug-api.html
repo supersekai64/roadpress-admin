@@ -1,0 +1,34 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Debug</title>
+</head>
+<body>
+    <h1>Test API Debug</h1>
+    <button onclick="testStats()">Test /api/debug/stats</button>
+    <button onclick="testLogs()">Test /api/debug/logs</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testStats() {
+            try {
+                const res = await fetch('/api/debug/stats');
+                const data = await res.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('result').textContent = 'ERROR: ' + err.message;
+            }
+        }
+
+        async function testLogs() {
+            try {
+                const res = await fetch('/api/debug/logs?page=1&limit=10');
+                const data = await res.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('result').textContent = 'ERROR: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
