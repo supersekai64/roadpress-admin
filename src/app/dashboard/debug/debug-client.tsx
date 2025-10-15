@@ -29,6 +29,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
   ChevronLeft,
   ChevronRight,
   Filter,
@@ -44,6 +50,8 @@ import {
   Info,
   XCircle,
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 interface DebugLog {
@@ -111,8 +119,8 @@ interface DebugFilters {
   action: string;
   licenseId: string;
   clientName: string;
-  dateFrom: string;
-  dateTo: string;
+  dateFrom: Date | undefined;
+  dateTo: Date | undefined;
   search: string;
 }
 
@@ -122,8 +130,6 @@ export default function DebugClient() {
   const [filters, setFilters] = useState<Filters | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [diagnostics, setDiagnostics] = useState<any>(null);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   // Filtres et pagination
   const [currentFilters, setCurrentFilters] = useState<DebugFilters>({
@@ -132,12 +138,12 @@ export default function DebugClient() {
     action: '',
     licenseId: '',
     clientName: '',
-    dateFrom: '',
-    dateTo: '',
+    dateFrom: undefined,
+    dateTo: undefined,
     search: '',
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const [sortField, setSortField] = useState('timestamp');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [totalPages, setTotalPages] = useState(1);
@@ -195,7 +201,11 @@ export default function DebugClient() {
 
       // Ajouter les filtres non vides
       Object.entries(currentFilters).forEach(([key, value]) => {
-        if (value.trim()) {
+        if (key === 'dateFrom' || key === 'dateTo') {
+          if (value instanceof Date) {
+            params.append(key, value.toISOString());
+          }
+        } else if (typeof value === 'string' && value.trim()) {
           params.append(key, value);
         }
       });
@@ -273,24 +283,97 @@ export default function DebugClient() {
     setCurrentPage(1);
   };
 
-  // Fonction de diagnostic
-  const runDiagnostics = async () => {
+  // Gestion des filtres
+  const updateFilter = (key: keyof DebugFilters, value: string | Date | undefined) => {
+    setCurrentFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
+  };
+
+  // Fonction d'export
+  const [exporting, setExporting] = useState(false);
+  const exportLogs = async () => {
+    if (exporting) return;
+    
     try {
-      const response = await fetch('/api/debug/diagnostics');
-      const data = await response.json();
-      setDiagnostics(data);
-      setShowDiagnostics(true);
-    } catch (err) {
-      console.error('Erreur diagnostic:', err);
-      setDiagnostics({ error: 'Impossible de charger les diagnostics' });
-      setShowDiagnostics(true);
+      setExporting(true);
+      const params = new URLSearchParams({
+        sortField,
+        sortDirection,
+      });
+
+      // Ajouter les filtres
+      Object.entries(currentFilters).forEach(([key, value]) => {
+        if (key === 'dateFrom' || key === 'dateTo') {
+          if (value instanceof Date) {
+            params.append(key, value.toISOString());
+          }
+        } else if (typeof value === 'string' && value.trim()) {
+          params.append(key, value);
+        }
+      });
+
+      const response = await fetch(`/api/debug/export?${params}`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `debug-logs-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Erreur export:', error);
+      setError(error instanceof Error ? error.message : 'Erreur export');
+    } finally {
+      setExporting(false);
     }
   };
 
-  // Gestion des filtres
-  const updateFilter = (key: keyof DebugFilters, value: string) => {
-    setCurrentFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1);
+  // Fonction de nettoyage
+  const [cleaning, setCleaning] = useState(false);
+  const cleanLogs = async (days: number) => {
+    if (cleaning) return;
+    
+    const confirmed = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer les logs de plus de ${days} jours ?`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      setCleaning(true);
+      const response = await fetch('/api/debug/clean', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ days }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log(`✅ ${result.deleted} logs supprimés`);
+      
+      // Recharger les données
+      await Promise.all([loadLogs(), loadStatsAndFilters()]);
+    } catch (error) {
+      console.error('Erreur nettoyage:', error);
+      setError(error instanceof Error ? error.message : 'Erreur nettoyage');
+    } finally {
+      setCleaning(false);
+    }
   };
 
   const clearFilters = () => {
@@ -300,8 +383,8 @@ export default function DebugClient() {
       action: '',
       licenseId: '',
       clientName: '',
-      dateFrom: '',
-      dateTo: '',
+      dateFrom: undefined,
+      dateTo: undefined,
       search: '',
     });
     setCurrentPage(1);
@@ -346,39 +429,6 @@ export default function DebugClient() {
     return colors[category] || 'bg-gray-100 text-gray-800';
   };
 
-  // Fonction pour créer des logs de test
-  const [creatingLogs, setCreatingLogs] = useState(false);
-  const createTestLogs = async () => {
-    if (creatingLogs) return;
-    
-    try {
-      setCreatingLogs(true);
-      const response = await fetch('/api/debug/test-logs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ count: 20 }), // Créer 20 logs de test
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Logs de test créés:', result);
-      
-      // Recharger les données
-      await Promise.all([loadLogs(), loadStatsAndFilters()]);
-      
-    } catch (error) {
-      console.error('❌ Erreur création logs test:', error);
-      setError(error instanceof Error ? error.message : 'Erreur création logs test');
-    } finally {
-      setCreatingLogs(false);
-    }
-  };
-
   if (error) {
     return (
       <div className="space-y-6">
@@ -394,58 +444,12 @@ export default function DebugClient() {
                 <p className="font-semibold">Erreur : {error}</p>
               </div>
               
-              {error.includes('404') && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-md border border-yellow-200 dark:border-yellow-800">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2 font-medium">
-                    🔍 Possible problème d{`'`}authentification en production :
-                  </p>
-                  <ul className="text-sm text-yellow-700 dark:text-yellow-300 list-disc list-inside space-y-1">
-                    <li>Vérifiez que vous êtes bien connecté</li>
-                    <li>Vérifiez NEXTAUTH_SECRET dans Vercel Dashboard</li>
-                    <li>Vérifiez NEXTAUTH_URL dans Vercel Dashboard</li>
-                    <li>Essayez de vous déconnecter puis reconnecter</li>
-                  </ul>
-                </div>
-              )}
-              
-              {error.includes('401') && (
-                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-red-800 dark:text-red-200 mb-2 font-medium">
-                    🔒 Session expirée ou non autorisé
-                  </p>
-                  <p className="text-sm text-red-700 dark:text-red-300">
-                    Veuillez vous reconnecter à l{`'`}application.
-                  </p>
-                </div>
-              )}
-              
               <div className="flex gap-2">
                 <Button onClick={() => { setError(null); loadLogs(); }}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Réessayer
                 </Button>
-                <Button variant="outline" onClick={runDiagnostics}>
-                  <Activity className="h-4 w-4 mr-2" />
-                  Diagnostic
-                </Button>
-                <Button variant="outline" onClick={() => window.location.href = '/login'}>
-                  Se reconnecter
-                </Button>
               </div>
-              
-              {showDiagnostics && diagnostics && (
-                <div className="mt-4 bg-gray-50 dark:bg-gray-900 p-4 rounded-md border">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">Diagnostic système</h3>
-                    <Button variant="ghost" size="sm" onClick={() => setShowDiagnostics(false)}>
-                      ✕
-                    </Button>
-                  </div>
-                  <pre className="text-xs overflow-auto max-h-64">
-                    {JSON.stringify(diagnostics, null, 2)}
-                  </pre>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -474,32 +478,31 @@ export default function DebugClient() {
             Actualiser
           </Button>
           <Button 
-            variant="outline" 
-            onClick={createTestLogs}
-            disabled={creatingLogs}
+            variant="outline"
+            onClick={exportLogs}
+            disabled={exporting || totalCount === 0}
           >
-            <Activity className={cn("h-4 w-4 mr-2", creatingLogs && "animate-spin")} />
-            {creatingLogs ? 'Création...' : 'Logs test'}
-          </Button>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exporter
+            <Download className={cn("h-4 w-4 mr-2", exporting && "animate-spin")} />
+            {exporting ? 'Export...' : 'Exporter'}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Nettoyer
+              <Button 
+                variant="outline"
+                disabled={cleaning || totalCount === 0}
+              >
+                <Trash2 className={cn("h-4 w-4 mr-2", cleaning && "animate-spin")} />
+                {cleaning ? 'Nettoyage...' : 'Nettoyer'}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => cleanLogs(7)}>
                 Supprimer logs &gt; 7 jours
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => cleanLogs(30)}>
                 Supprimer logs &gt; 30 jours
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => cleanLogs(90)}>
                 Supprimer logs &gt; 90 jours
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -614,7 +617,7 @@ export default function DebugClient() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">Toutes</SelectItem>
-                      {filters?.categories.map((category) => (
+                      {filters?.categories.filter((category) => category !== 'ALL').map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
@@ -635,7 +638,7 @@ export default function DebugClient() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">Tous</SelectItem>
-                      {filters?.statuses.map((status) => (
+                      {filters?.statuses.filter((status) => status !== 'ALL').map((status) => (
                         <SelectItem key={status} value={status}>
                           {status}
                         </SelectItem>
@@ -646,24 +649,66 @@ export default function DebugClient() {
 
                 {/* Date de début */}
                 <div>
-                  <Label htmlFor="dateFrom">Date de début</Label>
-                  <Input
-                    id="dateFrom"
-                    type="datetime-local"
-                    value={currentFilters.dateFrom}
-                    onChange={(e) => updateFilter('dateFrom', e.target.value)}
-                  />
+                  <Label>Date de début</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !currentFilters.dateFrom && 'text-muted-foreground'
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {currentFilters.dateFrom ? (
+                          format(currentFilters.dateFrom, 'dd MMM yyyy', { locale: fr })
+                        ) : (
+                          <span>Sélectionner</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={currentFilters.dateFrom}
+                        onSelect={(date) => updateFilter('dateFrom', date)}
+                        initialFocus
+                        locale={fr}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Date de fin */}
                 <div>
-                  <Label htmlFor="dateTo">Date de fin</Label>
-                  <Input
-                    id="dateTo"
-                    type="datetime-local"
-                    value={currentFilters.dateTo}
-                    onChange={(e) => updateFilter('dateTo', e.target.value)}
-                  />
+                  <Label>Date de fin</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !currentFilters.dateTo && 'text-muted-foreground'
+                        )}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {currentFilters.dateTo ? (
+                          format(currentFilters.dateTo, 'dd MMM yyyy', { locale: fr })
+                        ) : (
+                          <span>Sélectionner</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={currentFilters.dateTo}
+                        onSelect={(date) => updateFilter('dateTo', date)}
+                        initialFocus
+                        locale={fr}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 
@@ -762,12 +807,23 @@ export default function DebugClient() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {logs.map((log) => {
-                      const statusInfo = getStatusInfo(log.status);
-                      const StatusIcon = statusInfo.icon;
+                    {logs.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="h-32 text-center">
+                          <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                            <Activity className="h-8 w-8" />
+                            <p>Aucun log de debug pour le moment</p>
+                            <p className="text-sm">Les logs des clients apparaîtront ici automatiquement</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      logs.map((log) => {
+                        const statusInfo = getStatusInfo(log.status);
+                        const StatusIcon = statusInfo.icon;
 
-                      return (
-                        <TableRow key={log.id}>
+                        return (
+                          <TableRow key={log.id}>
                           <TableCell className="font-mono text-sm">
                             {new Date(log.timestamp).toLocaleString()}
                           </TableCell>
@@ -828,8 +884,9 @@ export default function DebugClient() {
                             </DropdownMenu>
                           </TableCell>
                         </TableRow>
-                      );
-                    })}
+                        );
+                      })
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -837,7 +894,11 @@ export default function DebugClient() {
               {/* Pagination */}
               <div className="flex items-center justify-between mt-4">
                 <div className="text-sm text-muted-foreground">
-                  Page {currentPage} sur {totalPages} ({totalCount.toLocaleString()} éléments)
+                  {totalCount === 0 ? (
+                    'Aucune entrée'
+                  ) : (
+                    <>Page {currentPage} sur {totalPages} ({totalCount.toLocaleString()} élément{totalCount > 1 ? 's' : ''})</>
+                  )}
                 </div>
                 
                 <div className="flex gap-2">
@@ -845,7 +906,7 @@ export default function DebugClient() {
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1 || loading}
+                    disabled={currentPage === 1 || loading || totalCount === 0 || totalPages <= 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -854,7 +915,7 @@ export default function DebugClient() {
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages || loading}
+                    disabled={currentPage >= totalPages || loading || totalCount === 0 || totalPages <= 1}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>

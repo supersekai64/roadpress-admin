@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth.server';
 import prisma from '@/lib/prisma';
 
@@ -10,11 +10,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const skip = (page - 1) * limit;
 
-    // Construire les filtres
+    // Construire les filtres (même logique que logs/route.ts)
     const where: any = {};
     
     const category = searchParams.get('category');
@@ -52,36 +49,51 @@ export async function GET(request: NextRequest) {
     const sortDirection = searchParams.get('sortDirection') || 'desc';
     const orderBy: any = { [sortField]: sortDirection };
 
-    const totalCount = await prisma.debugLog.count({ where });
-    const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-    
-    // Si pas d'entrées ou page invalide, retourner des données vides
-    if (totalCount === 0 || page > totalPages) {
-      return NextResponse.json({
-        logs: [],
-        pagination: {
-          currentPage: 1,
-          totalPages: 1,
-          totalCount: 0,
-          limit,
-        },
-      });
-    }
-
+    // Récupérer tous les logs (pas de limite pour l'export)
     const logs = await prisma.debugLog.findMany({
       where,
       orderBy,
-      skip,
-      take: limit,
+      take: 10000, // Limite raisonnable pour éviter les timeout
     });
 
-    return NextResponse.json({
-      logs,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalCount,
-        limit,
+    // Créer le CSV
+    const headers = [
+      'Timestamp',
+      'Category',
+      'Action',
+      'Status',
+      'Client Name',
+      'Method',
+      'Endpoint',
+      'Duration (ms)',
+      'Message',
+      'Error Details',
+    ];
+
+    const csvRows = [
+      headers.join(','),
+      ...logs.map((log) =>
+        [
+          `"${new Date(log.timestamp).toISOString()}"`,
+          `"${log.category}"`,
+          `"${log.action}"`,
+          `"${log.status}"`,
+          `"${log.clientName || ''}"`,
+          `"${log.method || ''}"`,
+          `"${log.endpoint || ''}"`,
+          log.duration || '',
+          `"${(log.message || '').replace(/"/g, '""')}"`,
+          `"${(log.errorDetails || '').replace(/"/g, '""')}"`,
+        ].join(',')
+      ),
+    ];
+
+    const csv = csvRows.join('\n');
+
+    return new NextResponse(csv, {
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="debug-logs-${new Date().toISOString().split('T')[0]}.csv"`,
       },
     });
   } catch (error) {

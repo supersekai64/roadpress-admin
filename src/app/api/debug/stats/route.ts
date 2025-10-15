@@ -11,14 +11,31 @@ export async function GET() {
 
     const totalLogs = await prisma.debugLog.count();
 
+    // Récupérer les catégories et statuts uniques depuis la base de données
+    const [categories, statuses] = await Promise.all([
+      prisma.debugLog.findMany({
+        select: { category: true },
+        distinct: ['category'],
+        orderBy: { category: 'asc' },
+      }),
+      prisma.debugLog.findMany({
+        select: { status: true },
+        distinct: ['status'],
+        orderBy: { status: 'asc' },
+      }),
+    ]);
+
+    const uniqueCategories = categories.map((c) => c.category).filter(Boolean);
+    const uniqueStatuses = statuses.map((s) => s.status).filter(Boolean);
+
     return NextResponse.json({
       totalLogs,
       logsLast24h: 0,
-      categories: [],
-      statuses: [],
+      categories: uniqueCategories,
+      statuses: uniqueStatuses,
       filters: {
-        categories: ['ALL'],
-        statuses: ['ALL'],
+        categories: uniqueCategories,
+        statuses: uniqueStatuses,
       },
     });
   } catch (error) {
