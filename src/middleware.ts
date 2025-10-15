@@ -51,9 +51,14 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // 2. Bloquer les bots SEO/IA (sauf pour les endpoints API publics)
+  // 2. Exclure /api/debug/* du middleware (gère sa propre auth)
+  if (request.nextUrl.pathname.startsWith('/api/debug')) {
+    return NextResponse.next();
+  }
+  
+  // 3. Bloquer les bots SEO/IA (sauf pour les endpoints API publics)
   const isPublicApi = request.nextUrl.pathname.match(
-    /^\/api\/(auth|licenses\/(verify|update|disassociate)|statistics|api-keys|poi\/sync|debug\/)/
+    /^\/api\/(auth|licenses\/(verify|update|disassociate)|statistics|api-keys|poi\/sync)/
   );
   
   if (!isPublicApi) {
@@ -70,7 +75,7 @@ export default async function middleware(request: NextRequest) {
     }
   }
   
-  // 3. Authentification NextAuth pour les routes protégées
+  // 4. Authentification NextAuth pour les routes protégées
   return auth(request as any) as any;
 }
 
