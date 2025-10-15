@@ -76,16 +76,6 @@ NEXTAUTH_URL="http://localhost:3000"  # Développement local
 NODE_ENV="development"
 ```
 
-**Générer un NEXTAUTH_SECRET** :
-
-```bash
-# Windows PowerShell
-[Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-
-# Linux/Mac
-openssl rand -base64 32
-```
-
 ### 4. Créer les tables et seed la base de données
 
 ```bash

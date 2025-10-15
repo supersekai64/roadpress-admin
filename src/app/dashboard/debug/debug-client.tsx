@@ -122,6 +122,8 @@ export default function DebugClient() {
   const [filters, setFilters] = useState<Filters | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<any>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   // Filtres et pagination
   const [currentFilters, setCurrentFilters] = useState<DebugFilters>({
@@ -146,7 +148,9 @@ export default function DebugClient() {
     try {
       const response = await fetch('/api/debug/stats');
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const errorText = await response.text();
+        console.error('Erreur API stats:', { status: response.status, text: errorText });
+        throw new Error(`HTTP ${response.status}${errorText ? ` - ${errorText}` : ''}`);
       }
       const data = await response.json();
       setStats(data.stats);
@@ -179,7 +183,9 @@ export default function DebugClient() {
 
       const response = await fetch(`/api/debug/logs?${params}`);
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const errorText = await response.text();
+        console.error('Erreur API logs:', { status: response.status, text: errorText });
+        throw new Error(`HTTP ${response.status}${errorText ? ` - ${errorText}` : ''}`);
       }
 
       const data = await response.json();
@@ -213,6 +219,20 @@ export default function DebugClient() {
       setSortDirection('desc');
     }
     setCurrentPage(1);
+  };
+
+  // Fonction de diagnostic
+  const runDiagnostics = async () => {
+    try {
+      const response = await fetch('/api/debug/diagnostics');
+      const data = await response.json();
+      setDiagnostics(data);
+      setShowDiagnostics(true);
+    } catch (err) {
+      console.error('Erreur diagnostic:', err);
+      setDiagnostics({ error: 'Impossible de charger les diagnostics' });
+      setShowDiagnostics(true);
+    }
   };
 
   // Gestion des filtres
@@ -316,14 +336,65 @@ export default function DebugClient() {
         
         <Card>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 text-red-600">
-              <XCircle className="h-5 w-5" />
-              <p>Erreur : {error}</p>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-red-600">
+                <XCircle className="h-5 w-5" />
+                <p className="font-semibold">Erreur : {error}</p>
+              </div>
+              
+              {error.includes('404') && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-md border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2 font-medium">
+                    🔍 Possible problème d{`'`}authentification en production :
+                  </p>
+                  <ul className="text-sm text-yellow-700 dark:text-yellow-300 list-disc list-inside space-y-1">
+                    <li>Vérifiez que vous êtes bien connecté</li>
+                    <li>Vérifiez NEXTAUTH_SECRET dans Vercel Dashboard</li>
+                    <li>Vérifiez NEXTAUTH_URL dans Vercel Dashboard</li>
+                    <li>Essayez de vous déconnecter puis reconnecter</li>
+                  </ul>
+                </div>
+              )}
+              
+              {error.includes('401') && (
+                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md border border-red-200 dark:border-red-800">
+                  <p className="text-sm text-red-800 dark:text-red-200 mb-2 font-medium">
+                    🔒 Session expirée ou non autorisé
+                  </p>
+                  <p className="text-sm text-red-700 dark:text-red-300">
+                    Veuillez vous reconnecter à l{`'`}application.
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex gap-2">
+                <Button onClick={() => { setError(null); loadLogs(); }}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Réessayer
+                </Button>
+                <Button variant="outline" onClick={runDiagnostics}>
+                  <Activity className="h-4 w-4 mr-2" />
+                  Diagnostic
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = '/login'}>
+                  Se reconnecter
+                </Button>
+              </div>
+              
+              {showDiagnostics && diagnostics && (
+                <div className="mt-4 bg-gray-50 dark:bg-gray-900 p-4 rounded-md border">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold">Diagnostic système</h3>
+                    <Button variant="ghost" size="sm" onClick={() => setShowDiagnostics(false)}>
+                      ✕
+                    </Button>
+                  </div>
+                  <pre className="text-xs overflow-auto max-h-64">
+                    {JSON.stringify(diagnostics, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
-            <Button onClick={() => loadLogs()} className="mt-4">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Réessayer
-            </Button>
           </CardContent>
         </Card>
       </div>
