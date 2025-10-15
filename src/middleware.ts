@@ -51,14 +51,9 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // 2. Exclure /api/debug/* du middleware (gère sa propre auth)
-  if (request.nextUrl.pathname.startsWith('/api/debug')) {
-    return NextResponse.next();
-  }
-  
-  // 3. Bloquer les bots SEO/IA (sauf pour les endpoints API publics)
+  // 2. Bloquer les bots SEO/IA (sauf pour les endpoints API publics)
   const isPublicApi = request.nextUrl.pathname.match(
-    /^\/api\/(auth|licenses\/(verify|update|disassociate)|statistics|api-keys|poi\/sync)/
+    /^\/api\/(auth|debug|licenses\/(verify|update|disassociate)|statistics|api-keys|poi\/sync)/
   );
   
   if (!isPublicApi) {
@@ -75,7 +70,7 @@ export default async function middleware(request: NextRequest) {
     }
   }
   
-  // 4. Authentification NextAuth pour les routes protégées
+  // 3. Authentification NextAuth pour les routes protégées
   return auth(request as any) as any;
 }
 
@@ -83,6 +78,7 @@ export const config = {
   matcher: [
     // Protéger toutes les routes SAUF :
     // - /api/auth (NextAuth)
+    // - /api/debug/* (routes de debug avec auth interne)
     // - /api/licenses/verify (endpoint public pour plugins WordPress)
     // - /api/licenses/update (endpoint public pour plugins WordPress)
     // - /api/licenses/disassociate (endpoint public pour plugins WordPress)
@@ -91,6 +87,6 @@ export const config = {
     // - /api/poi/sync (endpoint public pour plugins WordPress)
     // - robots.txt, sitemap.xml, ai.txt (fichiers SEO)
     // - fichiers statiques
-    '/((?!api/auth|api/licenses/verify|api/licenses/update|api/licenses/disassociate|api/statistics|api/api-keys|api/poi/sync|robots.txt|sitemap.xml|ai.txt|_next/static|_next/image|favicon.ico|images|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif)$).*)',
+    '/((?!api/auth|api/debug|api/licenses/verify|api/licenses/update|api/licenses/disassociate|api/statistics|api/api-keys|api/poi/sync|robots.txt|sitemap.xml|ai.txt|_next/static|_next/image|favicon.ico|images|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif)$).*)',
   ],
 };
