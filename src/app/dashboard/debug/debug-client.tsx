@@ -48,6 +48,8 @@ import {
   CheckCircle,
   Info,
   XCircle,
+  Check,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { Skeleton, PageHeaderSkeleton, TableSkeleton } from '@/components/ui/skeleton';
@@ -121,11 +123,15 @@ export default function DebugClient() {
     search: '',
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
   const [sortField, setSortField] = useState('timestamp');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  
+  // État pour le filtre client avec recherche
+  const [clientSearchOpen, setClientSearchOpen] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState('');
 
   // Chargement des statistiques et filtres disponibles
   const loadStatsAndFilters = useCallback(async () => {
@@ -638,22 +644,79 @@ export default function DebugClient() {
                 {/* Client */}
                 <div className="space-y-2">
                   <Label htmlFor="client">Client</Label>
-                  <Select
-                    value={currentFilters.clientName || 'ALL'}
-                    onValueChange={(value) => updateFilter('clientName', value === 'ALL' ? '' : value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tous les clients" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">Tous</SelectItem>
-                      {filters?.activeClients.map((client) => (
-                        <SelectItem key={client.id} value={client.name}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={clientSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        <span className="truncate">
+                          {currentFilters.clientName || 'Tous les clients'}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                      <div className="flex items-center border-b px-3 bg-card">
+                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                        <Input
+                          placeholder="Rechercher un client..."
+                          value={clientSearchQuery}
+                          onChange={(e) => setClientSearchQuery(e.target.value)}
+                          className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
+                        />
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto p-1">
+                        <div
+                          className={cn(
+                            'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                            !currentFilters.clientName && 'bg-accent'
+                          )}
+                          onClick={() => {
+                            updateFilter('clientName', '');
+                            setClientSearchOpen(false);
+                            setClientSearchQuery('');
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              'mr-2 h-4 w-4',
+                              !currentFilters.clientName ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                          Tous les clients
+                        </div>
+                        {filters?.activeClients
+                          .filter((client) =>
+                            client.name.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                          )
+                          .map((client) => (
+                            <div
+                              key={client.id}
+                              className={cn(
+                                'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                                currentFilters.clientName === client.name && 'bg-accent'
+                              )}
+                              onClick={() => {
+                                updateFilter('clientName', client.name);
+                                setClientSearchOpen(false);
+                                setClientSearchQuery('');
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  currentFilters.clientName === client.name ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              {client.name}
+                            </div>
+                          ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Date de début */}
@@ -721,31 +784,10 @@ export default function DebugClient() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center mt-4">
+              <div className="flex justify-start items-center mt-4">
                 <Button variant="outline" onClick={clearFilters}>
                   Effacer les filtres
                 </Button>
-                
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="itemsPerPage">Éléments par page :</Label>
-                  <Select
-                    value={itemsPerPage.toString()}
-                    onValueChange={(value) => {
-                      setItemsPerPage(parseInt(value));
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                      <SelectItem value="100">100</SelectItem>
-                      <SelectItem value="200">200</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             </CardContent>
           </Card>

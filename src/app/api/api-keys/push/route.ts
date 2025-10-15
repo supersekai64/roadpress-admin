@@ -51,6 +51,22 @@ export async function POST() {
       );
     }
 
+    // Log du démarrage de l'opération
+    await prisma.debugLog.create({
+      data: {
+        category: 'PUSH_API',
+        action: 'PUSH_API_KEYS_START',
+        status: 'INFO',
+        message: `Démarrage du push des clés API vers ${activeLicenses.length} client(s)`,
+        requestData: {
+          services: activeKeys.map(k => k.service),
+          keyCount: activeKeys.length,
+          targetCount: activeLicenses.length,
+          targets: activeLicenses.map(l => l.clientName),
+        },
+      },
+    });
+
     const results = {
       success: [] as string[],
       failed: [] as { site: string; error: string }[],
@@ -58,6 +74,8 @@ export async function POST() {
 
     // Distribuer les clés à chaque site client
     for (const license of activeLicenses) {
+      const startTime = Date.now();
+      
       try {
         if (!license.siteUrl) continue;
 
@@ -81,20 +99,89 @@ export async function POST() {
           signal: AbortSignal.timeout(10000), // Timeout 10s
         });
 
+        const duration = Date.now() - startTime;
+
         if (response.ok) {
           results.success.push(license.clientName);
+          
+          // Log de succès
+          await prisma.debugLog.create({
+            data: {
+              category: 'PUSH_API',
+              action: 'PUSH_API_KEYS_SUCCESS',
+              method: 'POST',
+              endpoint: webhookUrl,
+              licenseId: license.id,
+              clientName: license.clientName,
+              status: 'SUCCESS',
+              message: `Clés API poussées avec succès vers ${license.clientName}`,
+              requestData: {
+                services: activeKeys.map(k => k.service),
+                keyCount: activeKeys.length,
+              },
+              responseData: {
+                status: response.status,
+                statusText: response.statusText,
+              },
+              duration,
+            },
+          });
         } else {
           const errorText = await response.text().catch(() => 'Aucun détail');
           results.failed.push({
             site: license.clientName,
             error: `HTTP ${response.status} - ${errorText}`,
           });
+          
+          // Log d'échec HTTP
+          await prisma.debugLog.create({
+            data: {
+              category: 'PUSH_API',
+              action: 'PUSH_API_KEYS_FAILED',
+              method: 'POST',
+              endpoint: webhookUrl,
+              licenseId: license.id,
+              clientName: license.clientName,
+              status: 'ERROR',
+              message: `Échec du push vers ${license.clientName} : HTTP ${response.status}`,
+              requestData: {
+                services: activeKeys.map(k => k.service),
+                keyCount: activeKeys.length,
+              },
+              errorDetails: errorText,
+              duration,
+            },
+          });
         }
       } catch (error) {
+        const duration = Date.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        
         results.failed.push({
           site: license.clientName,
-          error: error instanceof Error ? error.message : 'Erreur inconnue',
+          error: errorMessage,
         });
+        
+        // Log d'erreur réseau/timeout
+        await prisma.debugLog.create({
+          data: {
+            category: 'PUSH_API',
+            action: 'PUSH_API_KEYS_ERROR',
+            method: 'POST',
+            endpoint: license.siteUrl ? `${license.siteUrl}/wp-json/roadpress/v1/update_api_keys` : 'URL manquante',
+            licenseId: license.id,
+            clientName: license.clientName,
+            status: 'ERROR',
+            message: `Erreur lors du push vers ${license.clientName}`,
+            requestData: {
+              services: activeKeys.map(k => k.service),
+              keyCount: activeKeys.length,
+            },
+            errorDetails: errorMessage,
+            duration,
+          },
+        });
+        
         console.error(`Erreur push vers ${license.clientName} (${license.siteUrl}):`, error);
       }
     }
@@ -103,6 +190,23 @@ export async function POST() {
     await prisma.apiKey.updateMany({
       where: { isActive: true },
       data: { lastPush: new Date() },
+    });
+
+    // Log du résumé final
+    await prisma.debugLog.create({
+      data: {
+        category: 'PUSH_API',
+        action: 'PUSH_API_KEYS_COMPLETE',
+        status: results.failed.length === 0 ? 'SUCCESS' : results.success.length > 0 ? 'WARNING' : 'ERROR',
+        message: `Push terminé : ${results.success.length} succès, ${results.failed.length} échec(s) sur ${activeLicenses.length} client(s)`,
+        responseData: {
+          total: activeLicenses.length,
+          success: results.success.length,
+          failed: results.failed.length,
+          successList: results.success,
+          failedList: results.failed,
+        },
+      },
     });
 
     return NextResponse.json({

@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import Map, { Marker, NavigationControl, FullscreenControl, Popup } from "react-map-gl";
-import type { MapRef } from "react-map-gl";
-import { MapPin, Users, Eye, Calendar, X, Navigation2, Download } from "lucide-react";
+import Map, { Marker, NavigationControl, FullscreenControl, Popup, Source, Layer } from "react-map-gl";
+import type { MapRef, LayerProps } from "react-map-gl";
+import { MapPin, Users, Eye, Calendar, X, Navigation2, Download, Filter, Flame } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,15 @@ import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import "mapbox-gl/dist/mapbox-gl.css";
 
+interface PoiVisit {
+  readonly id: string;
+  readonly season: string | null;
+  readonly visitorProfile: string | null;
+  readonly travelReason: string | null;
+  readonly stayDuration: string | null;
+  readonly visitDate: string;
+}
+
 interface Poi {
   readonly id: string;
   readonly name: string;
@@ -39,6 +48,7 @@ interface Poi {
     readonly licenseKey: string;
     readonly clientName: string;
   };
+  readonly visits?: readonly PoiVisit[];
 }
 
 interface License {
@@ -55,17 +65,28 @@ export default function PoiMapClient() {
   const [selectedLicense, setSelectedLicense] = useState<string>("all");
   const [selectedPoi, setSelectedPoi] = useState<Poi | null>(null);
   const [excludeRoadpress, setExcludeRoadpress] = useState<boolean>(false);
+  const [showHeatmap, setShowHeatmap] = useState<boolean>(true); // Par défaut visible
+  const [showMarkers, setShowMarkers] = useState<boolean>(false); // Par défaut caché
+  
+  // Nouveaux filtres
+  const [selectedSeason, setSelectedSeason] = useState<string>("all");
+  const [selectedProfile, setSelectedProfile] = useState<string>("all");
+  const [selectedTravelReason, setSelectedTravelReason] = useState<string>("all");
+  const [selectedStayDuration, setSelectedStayDuration] = useState<string>("all");
+  
   const [viewState, setViewState] = useState({
     latitude: 46.603354,
     longitude: 1.888334,
     zoom: 5,
+    pitch: 45, // Inclinaison pour voir les bâtiments en 3D
+    bearing: 0,
   });
   const mapRef = useRef<MapRef>(null);
 
   const { data: pois = [], isLoading: poisLoading } = useQuery<Poi[]>({
     queryKey: ["pois"],
     queryFn: async () => {
-      const response = await fetch("/api/poi");
+      const response = await fetch("/api/poi?includeVisits=true");
       if (!response.ok) throw new Error("Erreur chargement POIs");
       return response.json();
     },
@@ -95,11 +116,92 @@ export default function PoiMapClient() {
       filtered = filtered.filter(poi => poi.license.id === selectedLicense);
     }
     
+    // Filtrer par saison
+    if (selectedSeason !== "all") {
+      filtered = filtered.filter(poi => 
+        poi.visits?.some(visit => visit.season === selectedSeason)
+      );
+    }
+    
+    // Filtrer par profil visiteur
+    if (selectedProfile !== "all") {
+      filtered = filtered.filter(poi => 
+        poi.visits?.some(visit => visit.visitorProfile === selectedProfile)
+      );
+    }
+    
+    // Filtrer par raison du voyage
+    if (selectedTravelReason !== "all") {
+      filtered = filtered.filter(poi => 
+        poi.visits?.some(visit => visit.travelReason === selectedTravelReason)
+      );
+    }
+    
+    // Filtrer par durée du séjour
+    if (selectedStayDuration !== "all") {
+      filtered = filtered.filter(poi => 
+        poi.visits?.some(visit => visit.stayDuration === selectedStayDuration)
+      );
+    }
+    
     return filtered;
-  }, [pois, selectedLicense, excludeRoadpress]);
+  }, [pois, selectedLicense, excludeRoadpress, selectedSeason, selectedProfile, selectedTravelReason, selectedStayDuration]);
 
-  const { clusters, supercluster } = useMemo(() => {
-    if (!filteredPois.length) return { clusters: [], supercluster: null };
+  // Générer les données GeoJSON pour la heatmap
+  const heatmapData = useMemo(() => {
+    if (!filteredPois.length) return null;
+
+    // Créer un point par visite (pour une meilleure densité visuelle)
+    const features = filteredPois.flatMap(poi => {
+      // Créer plusieurs points autour du POI selon le nombre de visites
+      // Pour simuler un radius de 100m et donner plus de poids aux POIs très fréquentés
+      const visitCount = poi.visitCount || 0;
+      const points = [];
+      
+      // Point central avec le poids total
+      points.push({
+        type: "Feature" as const,
+        properties: { 
+          weight: visitCount,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [poi.longitude, poi.latitude],
+        },
+      });
+      
+      // Ajouter des points satellites pour créer un effet de zone (radius ~100m)
+      // 0.001 degré ≈ 111m à l'équateur, donc 0.0009 ≈ 100m
+      const radiusOffsets = [
+        [0.0009, 0], [-0.0009, 0], [0, 0.0009], [0, -0.0009], // 4 points cardinaux
+        [0.0006, 0.0006], [-0.0006, 0.0006], [0.0006, -0.0006], [-0.0006, -0.0006], // 4 diagonales
+      ];
+      
+      radiusOffsets.forEach(([lonOffset, latOffset]) => {
+        points.push({
+          type: "Feature" as const,
+          properties: { 
+            weight: Math.ceil(visitCount * 0.3), // 30% du poids sur les satellites
+          },
+          geometry: {
+            type: "Point" as const,
+            coordinates: [poi.longitude + lonOffset, poi.latitude + latOffset],
+          },
+        });
+      });
+      
+      return points;
+    });
+
+    return {
+      type: "FeatureCollection" as const,
+      features,
+    };
+  }, [filteredPois]);
+
+  // Créer l'instance supercluster séparément pour éviter les re-créations
+  const supercluster = useMemo(() => {
+    if (!filteredPois.length) return null;
 
     const points: PointFeature[] = filteredPois.map(poi => ({
       type: "Feature",
@@ -113,17 +215,21 @@ export default function PoiMapClient() {
       },
     }));
 
-    const superclusterInstance = new Supercluster<GeoJsonProperties & { poi: Poi }>({
+    const instance = new Supercluster<GeoJsonProperties & { poi: Poi }>({
       radius: 75,
       maxZoom: 16,
     });
 
-    superclusterInstance.load(points);
+    instance.load(points);
+    return instance;
+  }, [filteredPois]);
 
-    const bounds = mapRef.current?.getBounds();
+  // Calculer les clusters basés sur le viewport actuel
+  const clusters = useMemo(() => {
+    if (!supercluster || !mapRef.current) return [];
+
+    const bounds = mapRef.current.getBounds();
     const zoom = Math.floor(viewState.zoom);
-
-    if (!bounds) return { clusters: [], supercluster: superclusterInstance };
 
     const bbox: BBox = [
       bounds.getWest(),
@@ -132,11 +238,8 @@ export default function PoiMapClient() {
       bounds.getNorth(),
     ];
 
-    return {
-      clusters: superclusterInstance.getClusters(bbox, zoom),
-      supercluster: superclusterInstance,
-    };
-  }, [filteredPois, viewState.zoom]);
+    return supercluster.getClusters(bbox, zoom);
+  }, [supercluster, viewState]);
 
   const handleClusterClick = useCallback(
     (clusterId: number, longitude: number, latitude: number) => {
@@ -395,46 +498,164 @@ export default function PoiMapClient() {
               {filteredPois.length} point{filteredPois.length > 1 ? "s" : ""} d{"'"}intérêt
             </p>
           </div>
-          <Button onClick={handleExportToExcel} className="gap-2">
-            <Download className="h-4 w-4" />
-            Exporter vers Excel
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4">
-            <Label htmlFor="license-filter" className="text-sm font-medium whitespace-nowrap">
-              Filtrer par client :
-            </Label>
-            <Select value={selectedLicense} onValueChange={setSelectedLicense}>
-              <SelectTrigger id="license-filter" className="w-[250px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les clients</SelectItem>
-                {licenses.map((license) => (
-                  <SelectItem key={license.id} value={license.id}>
-                    {license.clientName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Checkbox 
-              id="exclude-roadpress"
-              checked={excludeRoadpress}
-              onCheckedChange={(checked) => setExcludeRoadpress(checked === true)}
-            />
-            <Label 
-              htmlFor="exclude-roadpress" 
-              className="text-sm font-medium cursor-pointer"
+          <div className="flex gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Checkbox 
+                id="exclude-roadpress-header"
+                checked={excludeRoadpress}
+                onCheckedChange={(checked) => setExcludeRoadpress(checked === true)}
+              />
+              <Label 
+                htmlFor="exclude-roadpress-header" 
+                className="text-sm cursor-pointer whitespace-nowrap"
+              >
+                Exclure Roadpress (démo)
+              </Label>
+            </div>
+            <Button 
+              variant={showHeatmap ? "default" : "outline"} 
+              onClick={() => setShowHeatmap(!showHeatmap)} 
+              className="gap-2"
             >
-              Exclure le client de démo (Roadpress)
-            </Label>
+              <Flame className="h-4 w-4" />
+              {showHeatmap ? "Masquer" : "Afficher"} la heatmap
+            </Button>
+            <Button 
+              variant={showMarkers ? "default" : "outline"} 
+              onClick={() => setShowMarkers(!showMarkers)} 
+              className="gap-2"
+            >
+              <MapPin className="h-4 w-4" />
+              {showMarkers ? "Masquer" : "Afficher"} les markers
+            </Button>
+            <Button onClick={handleExportToExcel} className="gap-2">
+              <Download className="h-4 w-4" />
+              Exporter vers Excel
+            </Button>
           </div>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtres
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              {/* Client */}
+              <div className="space-y-2">
+                <Label htmlFor="license-filter">Client</Label>
+                <Select value={selectedLicense} onValueChange={setSelectedLicense}>
+                  <SelectTrigger id="license-filter">
+                    <SelectValue placeholder="Tous les clients" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous</SelectItem>
+                    {licenses.map((license) => (
+                      <SelectItem key={license.id} value={license.id}>
+                        {license.clientName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Saison */}
+              <div className="space-y-2">
+                <Label htmlFor="season-filter">Saison</Label>
+                <Select value={selectedSeason} onValueChange={setSelectedSeason}>
+                  <SelectTrigger id="season-filter">
+                    <SelectValue placeholder="Toutes les saisons" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes</SelectItem>
+                    <SelectItem value="WINTER">Hiver</SelectItem>
+                    <SelectItem value="SPRING">Printemps</SelectItem>
+                    <SelectItem value="SUMMER">Été</SelectItem>
+                    <SelectItem value="FALL">Automne</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Profil visiteur */}
+              <div className="space-y-2">
+                <Label htmlFor="profile-filter">Profil visiteur</Label>
+                <Select value={selectedProfile} onValueChange={setSelectedProfile}>
+                  <SelectTrigger id="profile-filter">
+                    <SelectValue placeholder="Tous les profils" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="SOLO">Solo</SelectItem>
+                    <SelectItem value="COUPLE">Couple</SelectItem>
+                    <SelectItem value="FAMILY">Famille</SelectItem>
+                    <SelectItem value="FRIENDS">Amis</SelectItem>
+                    <SelectItem value="ORGANIZED_GROUP">Groupe organisé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Raison du voyage */}
+              <div className="space-y-2">
+                <Label htmlFor="reason-filter">Raison du voyage</Label>
+                <Select value={selectedTravelReason} onValueChange={setSelectedTravelReason}>
+                  <SelectTrigger id="reason-filter">
+                    <SelectValue placeholder="Toutes les raisons" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes</SelectItem>
+                    <SelectItem value="LEISURE">Loisirs</SelectItem>
+                    <SelectItem value="BUSINESS">Affaires</SelectItem>
+                    <SelectItem value="FAMILY_VISIT">Visite familiale</SelectItem>
+                    <SelectItem value="EVENT">Événement</SelectItem>
+                    <SelectItem value="HEALTH">Santé/Cure</SelectItem>
+                    <SelectItem value="EDUCATION">Éducation</SelectItem>
+                    <SelectItem value="OTHER">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Durée du séjour */}
+              <div className="space-y-2">
+                <Label htmlFor="duration-filter">Durée du séjour</Label>
+                <Select value={selectedStayDuration} onValueChange={setSelectedStayDuration}>
+                  <SelectTrigger id="duration-filter">
+                    <SelectValue placeholder="Toutes les durées" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes</SelectItem>
+                    <SelectItem value="DAY_TRIP">Excursion à la journée</SelectItem>
+                    <SelectItem value="ONE_NIGHT">1 nuit</SelectItem>
+                    <SelectItem value="TWO_TO_THREE">2-3 nuits</SelectItem>
+                    <SelectItem value="FOUR_TO_SEVEN">4-7 nuits</SelectItem>
+                    <SelectItem value="MORE_THAN_WEEK">Plus d{`'`}une semaine</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Bouton Effacer les filtres */}
+              <div className="space-y-2">
+                <Label className="opacity-0">Action</Label>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => {
+                    setSelectedLicense("all");
+                    setSelectedSeason("all");
+                    setSelectedProfile("all");
+                    setSelectedTravelReason("all");
+                    setSelectedStayDuration("all");
+                    setExcludeRoadpress(false);
+                  }}
+                >
+                  Effacer les filtres
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -479,10 +700,58 @@ export default function PoiMapClient() {
             ref={mapRef}
             {...viewState}
             onMove={(evt) => setViewState(evt.viewState)}
-            mapStyle="mapbox://styles/mapbox/light-v11"
+            mapStyle="mapbox://styles/mapbox/dark-v11"
             mapboxAccessToken={MAPBOX_ADMIN_TOKEN}
             style={{ width: "100%", height: "600px", borderRadius: "0.5rem", overflow: "hidden" }}
-            onLoad={() => {
+            onLoad={(e) => {
+              const map = e.target;
+              
+              // Activer les bâtiments 3D
+              map.on('style.load', () => {
+                // Ajouter la couche de bâtiments 3D si elle n'existe pas déjà
+                const layers = map.getStyle().layers;
+                const labelLayerId = layers?.find(
+                  (layer) => layer.type === 'symbol' && layer.layout && 'text-field' in layer.layout
+                )?.id;
+
+                // Activer l'extrusion des bâtiments
+                if (!map.getLayer('3d-buildings')) {
+                  map.addLayer(
+                    {
+                      id: '3d-buildings',
+                      source: 'composite',
+                      'source-layer': 'building',
+                      filter: ['==', 'extrude', 'true'],
+                      type: 'fill-extrusion',
+                      minzoom: 15,
+                      paint: {
+                        'fill-extrusion-color': '#aaa',
+                        'fill-extrusion-height': [
+                          'interpolate',
+                          ['linear'],
+                          ['zoom'],
+                          15,
+                          0,
+                          15.05,
+                          ['get', 'height']
+                        ],
+                        'fill-extrusion-base': [
+                          'interpolate',
+                          ['linear'],
+                          ['zoom'],
+                          15,
+                          0,
+                          15.05,
+                          ['get', 'min_height']
+                        ],
+                        'fill-extrusion-opacity': 0.6
+                      }
+                    },
+                    labelLayerId
+                  );
+                }
+              });
+              
               // Re-centrer la carte une fois qu'elle est chargée
               if (filteredPois.length > 0 && mapRef.current) {
                 const bounds = filteredPois.reduce(
@@ -517,7 +786,69 @@ export default function PoiMapClient() {
             <NavigationControl position="top-right" />
             <FullscreenControl position="top-right" />
 
-            {clusters.map((cluster) => {
+            {/* Heatmap Layer */}
+            {showHeatmap && heatmapData && (
+              <Source
+                id="poi-heatmap"
+                type="geojson"
+                data={heatmapData}
+              >
+                <Layer
+                  id="poi-heatmap-layer"
+                  type="heatmap"
+                  paint={{
+                    // Poids basé sur la propriété 'weight' (nombre de visites)
+                    'heatmap-weight': [
+                      'interpolate',
+                      ['linear'],
+                      ['get', 'weight'],
+                      0, 0,
+                      100, 1
+                    ],
+                    // Intensité selon le zoom
+                    'heatmap-intensity': [
+                      'interpolate',
+                      ['linear'],
+                      ['zoom'],
+                      0, 1,
+                      15, 3
+                    ],
+                    // Gradient de couleur
+                    'heatmap-color': [
+                      'interpolate',
+                      ['linear'],
+                      ['heatmap-density'],
+                      0, 'rgba(33, 102, 172, 0)',
+                      0.2, 'rgb(103, 169, 207)',
+                      0.4, 'rgb(209, 229, 240)',
+                      0.6, 'rgb(253, 219, 199)',
+                      0.8, 'rgb(239, 138, 98)',
+                      1, 'rgb(178, 24, 43)'
+                    ],
+                    // Rayon des points de la heatmap (en pixels)
+                    'heatmap-radius': [
+                      'interpolate',
+                      ['linear'],
+                      ['zoom'],
+                      0, 2,
+                      9, 20,
+                      15, 40
+                    ],
+                    // Opacité
+                    'heatmap-opacity': [
+                      'interpolate',
+                      ['linear'],
+                      ['zoom'],
+                      7, 0.8,
+                      15, 0.6
+                    ]
+                  }}
+                />
+              </Source>
+            )}
+
+            {/* Markers et Clusters */}
+            {showMarkers && clusters.map((cluster) => {
               const [longitude, latitude] = cluster.geometry.coordinates;
               const { cluster: isCluster, point_count: pointCount } = cluster.properties;
 

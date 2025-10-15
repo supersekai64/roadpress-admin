@@ -235,7 +235,7 @@ export function CreateLicenseDialog({ open, onOpenChange }: CreateLicenseDialogP
               name="siteUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Site web (optionnel)</FormLabel>
+                  <FormLabel>Site web</FormLabel>
                   <FormControl>
                     <Input
                       type="url"
