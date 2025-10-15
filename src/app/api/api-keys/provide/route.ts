@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
         openai_api_key: keys.openai || '',
         brevo_api_key: keys.brevo || '',
         deepl_api_key: keys.deepl || '',
+        mapbox_client_key: keys.mapbox || '',
         geonames_username: keys.geonames || '',
       },
     });
