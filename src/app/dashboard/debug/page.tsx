@@ -3,10 +3,8 @@
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
-// Lazy load du composant client pour éviter de charger les dépendances lourdes côté serveur
 const DebugClient = dynamic(() => import('./debug-client'), {
   loading: () => <DebugPageSkeleton />,
-  ssr: false,
 });
 
 function DebugPageSkeleton() {
