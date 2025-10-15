@@ -241,11 +241,26 @@ export default function DebugClient() {
   // Chargement initial
   useEffect(() => {
     loadStatsAndFilters();
-  }, [loadStatsAndFilters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Charger une seule fois au montage
 
   useEffect(() => {
     loadLogs();
-  }, [loadLogs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    currentPage, 
+    itemsPerPage, 
+    sortField, 
+    sortDirection,
+    currentFilters.category,
+    currentFilters.status,
+    currentFilters.action,
+    currentFilters.licenseId,
+    currentFilters.clientName,
+    currentFilters.dateFrom,
+    currentFilters.dateTo,
+    currentFilters.search,
+  ]); // Recharger si une de ces valeurs change
 
   // Gestion du tri
   const handleSort = (field: string) => {
