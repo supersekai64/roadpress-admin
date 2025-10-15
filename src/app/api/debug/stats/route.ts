@@ -11,8 +11,8 @@ export async function GET() {
 
     const totalLogs = await prisma.debugLog.count();
 
-    // Récupérer les catégories et statuts uniques depuis la base de données
-    const [categories, statuses] = await Promise.all([
+    // Récupérer les catégories, statuts, clients et actions uniques depuis la base de données
+    const [categories, statuses, clients, actions] = await Promise.all([
       prisma.debugLog.findMany({
         select: { category: true },
         distinct: ['category'],
@@ -23,19 +23,68 @@ export async function GET() {
         distinct: ['status'],
         orderBy: { status: 'asc' },
       }),
+      prisma.debugLog.findMany({
+        where: {
+          clientName: {
+            not: '',
+          },
+        },
+        select: { 
+          licenseId: true,
+          clientName: true,
+        },
+        distinct: ['clientName'],
+        orderBy: { clientName: 'asc' },
+      }),
+      prisma.debugLog.findMany({
+        where: {
+          action: {
+            not: '',
+          },
+        },
+        select: { action: true },
+        distinct: ['action'],
+        orderBy: { action: 'asc' },
+      }),
     ]);
 
     const uniqueCategories = categories.map((c) => c.category).filter(Boolean);
     const uniqueStatuses = statuses.map((s) => s.status).filter(Boolean);
+    const uniqueClients = clients
+      .filter((c) => c.clientName)
+      .map((c) => ({
+        id: c.licenseId || '',
+        name: c.clientName || '',
+      }));
+    const uniqueActions = actions.map((a) => a.action).filter(Boolean);
+
+    // Calculer le temps de réponse moyen depuis minuit (00h00 aujourd'hui)
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+    const logsWithDuration = await prisma.debugLog.findMany({
+      where: {
+        duration: { not: null },
+        timestamp: { gte: startOfToday },
+      },
+      select: { duration: true },
+    });
+    
+    const averageResponseTime = logsWithDuration.length > 0
+      ? logsWithDuration.reduce((sum, log) => sum + (log.duration || 0), 0) / logsWithDuration.length
+      : 0;
 
     return NextResponse.json({
-      totalLogs,
-      logsLast24h: 0,
-      categories: uniqueCategories,
-      statuses: uniqueStatuses,
+      stats: {
+        recentActivity: {
+          averageResponseTime: Math.round(averageResponseTime),
+        },
+      },
       filters: {
         categories: uniqueCategories,
         statuses: uniqueStatuses,
+        activeClients: uniqueClients,
+        recentActions: uniqueActions,
       },
     });
   } catch (error) {

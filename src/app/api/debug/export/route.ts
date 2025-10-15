@@ -88,7 +88,9 @@ export async function GET(request: NextRequest) {
       ),
     ];
 
-    const csv = csvRows.join('\n');
+    // Ajouter le BOM UTF-8 pour la compatibilité Excel et autres logiciels
+    const BOM = '\uFEFF';
+    const csv = BOM + csvRows.join('\n');
 
     return new NextResponse(csv, {
       headers: {

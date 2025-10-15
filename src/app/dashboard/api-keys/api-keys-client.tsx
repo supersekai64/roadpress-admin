@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton, PageHeaderSkeleton, CardSkeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -209,8 +210,20 @@ export default function ApiKeysPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <p className="text-muted-foreground">Chargement...</p>
+      <div className="space-y-6">
+        <PageHeaderSkeleton />
+        
+        {/* Action button skeleton */}
+        <div className="flex justify-end">
+          <Skeleton className="h-10 w-48" />
+        </div>
+
+        {/* Cards grid skeleton */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }

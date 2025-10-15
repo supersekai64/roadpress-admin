@@ -15,6 +15,7 @@ import { fr } from 'date-fns/locale';
 import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton, PageHeaderSkeleton, TableSkeleton, StatCardSkeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -306,8 +307,8 @@ export default function LicensesPage() {
       <Card>
         <CardContent className="pt-6">
           {isLoading ? (
-            <div className="flex justify-center items-center py-8">
-              <p className="text-muted-foreground">Chargement...</p>
+            <div className="space-y-4">
+              <TableSkeleton rows={10} />
             </div>
           ) : licenses.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8">

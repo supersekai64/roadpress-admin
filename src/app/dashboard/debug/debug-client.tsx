@@ -27,7 +27,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Popover,
   PopoverContent,
@@ -50,7 +49,8 @@ import {
   Info,
   XCircle,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
+import { Skeleton, PageHeaderSkeleton, TableSkeleton } from '@/components/ui/skeleton';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -76,31 +76,9 @@ interface DebugLog {
 }
 
 interface DebugStats {
-  readonly totalLogs: number;
-  readonly categoriesStats: ReadonlyArray<{
-    readonly category: string;
-    readonly count: number;
-    readonly lastActivity: string;
-  }>;
-  readonly statusStats: ReadonlyArray<{
-    readonly status: string;
-    readonly count: number;
-  }>;
   readonly recentActivity: {
-    readonly logsLast24h: number;
-    readonly logsLast7d: number;
-    readonly mostActiveClient: string;
-    readonly mostActiveAction: string;
     readonly averageResponseTime: number;
   };
-  readonly topClients: ReadonlyArray<{
-    readonly clientName: string;
-    readonly count: number;
-  }>;
-  readonly topActions: ReadonlyArray<{
-    readonly action: string;
-    readonly count: number;
-  }>;
 }
 
 interface Filters {
@@ -390,6 +368,40 @@ export default function DebugClient() {
     setCurrentPage(1);
   };
 
+  // Fonction de suppression d'un log individuel
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const deleteLog = async (logId: string) => {
+    if (deleting) return;
+    
+    const confirmed = window.confirm(
+      'Êtes-vous sûr de vouloir supprimer ce log ?'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      setDeleting(logId);
+      const response = await fetch(`/api/debug/logs/${logId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      console.log(`✅ Log supprimé`);
+      
+      // Recharger les logs
+      await loadLogs();
+    } catch (error) {
+      console.error('Erreur suppression:', error);
+      setError(error instanceof Error ? error.message : 'Erreur suppression');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   // Fonction pour formater la durée
   const formatDuration = (ms?: number) => {
     if (!ms) return '-';
@@ -457,15 +469,60 @@ export default function DebugClient() {
     );
   }
 
+  if (loading && logs.length === 0) {
+    return (
+      <div className="space-y-6">
+        <PageHeaderSkeleton />
+        
+        {/* Filters skeleton */}
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+        </div>
+
+        {/* Actions skeleton */}
+        <div className="flex gap-2 justify-end">
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+
+        {/* Table skeleton */}
+        <div className="rounded-lg border bg-card">
+          <div className="p-4 border-b">
+            <Skeleton className="h-6 w-48" />
+          </div>
+          <div className="p-6">
+            <TableSkeleton rows={8} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Debug</h1>
-          <p className="text-muted-foreground">
-            Surveillance en temps réel de toutes les activités de l{`'`}application
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-muted-foreground">
+              Surveillance en temps réel de toutes les activités de l{`'`}application
+            </p>
+            {stats && stats.recentActivity.averageResponseTime > 0 && (
+              <div className="flex items-center gap-1.5 text-sm">
+                <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-muted-foreground">Temps moyen :</span>
+                <span className="font-medium">{formatDuration(stats.recentActivity.averageResponseTime)}</span>
+                <span className="text-xs text-muted-foreground">(aujourd{`'`}hui)</span>
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="flex gap-2">
@@ -474,7 +531,7 @@ export default function DebugClient() {
             onClick={loadLogs}
             disabled={loading}
           >
-            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             Actualiser
           </Button>
           <Button 
@@ -482,7 +539,7 @@ export default function DebugClient() {
             onClick={exportLogs}
             disabled={exporting || totalCount === 0}
           >
-            <Download className={cn("h-4 w-4 mr-2", exporting && "animate-spin")} />
+            <Download className={cn("h-4 w-4", exporting && "animate-spin")} />
             {exporting ? 'Export...' : 'Exporter'}
           </Button>
           <DropdownMenu>
@@ -491,7 +548,7 @@ export default function DebugClient() {
                 variant="outline"
                 disabled={cleaning || totalCount === 0}
               >
-                <Trash2 className={cn("h-4 w-4 mr-2", cleaning && "animate-spin")} />
+                <Trash2 className={cn("h-4 w-4", cleaning && "animate-spin")} />
                 {cleaning ? 'Nettoyage...' : 'Nettoyer'}
               </Button>
             </DropdownMenuTrigger>
@@ -510,76 +567,7 @@ export default function DebugClient() {
         </div>
       </div>
 
-      {/* Statistiques */}
-      {stats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Logs total</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalLogs.toLocaleString()}</div>
-              <p className="text-sm text-muted-foreground">
-                {stats.recentActivity.logsLast24h} dernières 24h
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Client actif</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold truncate">
-                {stats.recentActivity.mostActiveClient}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Plus actif cette semaine
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Temps moyen</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatDuration(stats.recentActivity.averageResponseTime)}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Temps de réponse moyen
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Action fréquente</CardTitle>
-              <Info className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold truncate">
-                {stats.recentActivity.mostActiveAction}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Action la plus fréquente
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <Tabs defaultValue="logs" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="logs">Logs en temps réel</TabsTrigger>
-          <TabsTrigger value="analytics">Analyses</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="logs" className="space-y-4">
+      <div className="space-y-4">
           {/* Filtres */}
           <Card>
             <CardHeader>
@@ -589,9 +577,9 @@ export default function DebugClient() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 {/* Recherche globale */}
-                <div className="col-span-full">
+                <div className="col-span-full space-y-2">
                   <Label htmlFor="search">Recherche globale</Label>
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -606,7 +594,7 @@ export default function DebugClient() {
                 </div>
 
                 {/* Catégorie */}
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="category">Catégorie</Label>
                   <Select
                     value={currentFilters.category}
@@ -627,7 +615,7 @@ export default function DebugClient() {
                 </div>
 
                 {/* Statut */}
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="status">Statut</Label>
                   <Select
                     value={currentFilters.status}
@@ -647,8 +635,29 @@ export default function DebugClient() {
                   </Select>
                 </div>
 
+                {/* Client */}
+                <div className="space-y-2">
+                  <Label htmlFor="client">Client</Label>
+                  <Select
+                    value={currentFilters.clientName || 'ALL'}
+                    onValueChange={(value) => updateFilter('clientName', value === 'ALL' ? '' : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tous les clients" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Tous</SelectItem>
+                      {filters?.activeClients.map((client) => (
+                        <SelectItem key={client.id} value={client.name}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Date de début */}
-                <div>
+                <div className="space-y-2">
                   <Label>Date de début</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -680,7 +689,7 @@ export default function DebugClient() {
                 </div>
 
                 {/* Date de fin */}
-                <div>
+                <div className="space-y-2">
                   <Label>Date de fin</Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -860,7 +869,11 @@ export default function DebugClient() {
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                <Button 
+                                  variant="ghost" 
+                                  className="h-8 w-8 p-0"
+                                  disabled={deleting === log.id}
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -879,6 +892,13 @@ export default function DebugClient() {
                                   }}
                                 >
                                   Copier JSON
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => deleteLog(log.id)}
+                                  disabled={deleting === log.id}
+                                >
+                                  {deleting === log.id ? 'Suppression...' : 'Supprimer'}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -923,114 +943,7 @@ export default function DebugClient() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-4">
-          {/* Analyses et graphiques */}
-          {stats && (
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Top Catégories */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Répartition par catégorie</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {stats.categoriesStats.map((cat, index) => (
-                      <div key={cat.category} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge className={getCategoryColor(cat.category)}>
-                            {cat.category}
-                          </Badge>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{cat.count.toLocaleString()}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(cat.lastActivity).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Top Clients */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Clients les plus actifs</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {stats.topClients.map((client, index) => (
-                      <div key={client.clientName} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                            {index + 1}
-                          </div>
-                          <span className="truncate">{client.clientName}</span>
-                        </div>
-                        <Badge variant="secondary">{client.count}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Top Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Actions les plus fréquentes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {stats.topActions.map((action, index) => (
-                      <div key={action.action} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground text-xs flex items-center justify-center">
-                            {index + 1}
-                          </div>
-                          <span className="font-mono text-sm truncate">{action.action}</span>
-                        </div>
-                        <Badge variant="outline">{action.count}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Répartition par Statut */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Répartition par statut</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {stats.statusStats.map((stat) => {
-                      const statusInfo = getStatusInfo(stat.status);
-                      const StatusIcon = statusInfo.icon;
-                      const percentage = ((stat.count / stats.totalLogs) * 100).toFixed(1);
-
-                      return (
-                        <div key={stat.status} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <StatusIcon className={cn("h-4 w-4", statusInfo.color)} />
-                            <span>{stat.status}</span>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">{stat.count.toLocaleString()}</div>
-                            <div className="text-xs text-muted-foreground">{percentage}%</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      </div>
     </div>
   );
 }
