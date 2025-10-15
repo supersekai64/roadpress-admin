@@ -5,6 +5,14 @@ import { NextRequest, NextResponse } from 'next/server';
  * NE PAS UTILISER EN PRODUCTION - DÉSACTIVER APRÈS DEBUG
  */
 export async function GET(request: NextRequest) {
+  // 🔒 SÉCURITÉ : Désactiver en production après debug
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Route désactivée en production' },
+      { status: 403 }
+    );
+  }
+
   const env = {
     timestamp: new Date().toISOString(),
     nodeEnv: process.env.NODE_ENV,

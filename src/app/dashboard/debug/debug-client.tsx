@@ -146,12 +146,31 @@ export default function DebugClient() {
   // Chargement des statistiques et filtres disponibles
   const loadStatsAndFilters = useCallback(async () => {
     try {
-      const response = await fetch('/api/debug/stats');
+      const response = await fetch('/api/debug/stats', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Erreur API stats:', { status: response.status, text: errorText });
-        throw new Error(`HTTP ${response.status}${errorText ? ` - ${errorText}` : ''}`);
+        const contentType = response.headers.get('content-type');
+        let errorText = `HTTP ${response.status}`;
+        
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          errorText += ` - ${JSON.stringify(errorData)}`;
+        } else if (contentType?.includes('text/html')) {
+          errorText += ' - Page HTML retournée (probablement 404/401)';
+        } else {
+          const text = await response.text();
+          errorText += ` - ${text.substring(0, 200)}`;
+        }
+        
+        console.error('Erreur API stats:', { status: response.status, contentType, errorText });
+        throw new Error(errorText);
       }
+      
       const data = await response.json();
       setStats(data.stats);
       setFilters(data.filters);
@@ -181,11 +200,29 @@ export default function DebugClient() {
         }
       });
 
-      const response = await fetch(`/api/debug/logs?${params}`);
+      const response = await fetch(`/api/debug/logs?${params}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Erreur API logs:', { status: response.status, text: errorText });
-        throw new Error(`HTTP ${response.status}${errorText ? ` - ${errorText}` : ''}`);
+        const contentType = response.headers.get('content-type');
+        let errorText = `HTTP ${response.status}`;
+        
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json();
+          errorText += ` - ${JSON.stringify(errorData)}`;
+        } else if (contentType?.includes('text/html')) {
+          errorText += ' - Page HTML retournée (probablement 404/401)';
+        } else {
+          const text = await response.text();
+          errorText += ` - ${text.substring(0, 200)}`;
+        }
+        
+        console.error('Erreur API logs:', { status: response.status, contentType, errorText });
+        throw new Error(errorText);
       }
 
       const data = await response.json();
