@@ -53,7 +53,7 @@ export default async function middleware(request: NextRequest) {
   
   // 2. Bloquer les bots SEO/IA (sauf pour les endpoints API publics)
   const isPublicApi = request.nextUrl.pathname.match(
-    /^\/api\/(auth|licenses\/(verify|update|disassociate)|statistics|api-keys|poi\/sync|debug)/
+    /^\/api\/(auth|licenses\/(verify|update|disassociate)|statistics|api-keys|poi\/sync|debug\/)/
   );
   
   if (!isPublicApi) {
