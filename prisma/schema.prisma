@@ -61,6 +61,7 @@ model License {
   emailLogs     EmailLog[]
   smsLogs       SmsLog[]
   pois          Poi[]
+  poiVisits     PoiVisit[]
   debugLogs     DebugLog[]
 
   @@map("licenses")
@@ -269,17 +270,104 @@ model Poi {
   latitude    Float
   longitude   Float
   visitCount  Int      @default(0) @map("visit_count")
-  seasonData  String?  @map("season_data") // JSON stored as string
+  seasonData  String?  @map("season_data") // JSON stored as string (DEPRECATED - use PoiVisit instead)
   syncDate    DateTime @map("sync_date")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   license     License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  visits      PoiVisit[]
 
   @@unique([licenseId, poiId])
   @@index([licenseId])
   @@index([latitude, longitude])
   @@map("pois")
+}
+
+// =====================================================
+// POI VISITS - Structured data for each visit
+// =====================================================
+
+model PoiVisit {
+  id                String            @id @default(cuid())
+  poiId             String            @map("poi_id")
+  licenseId         String            @map("license_id")
+  
+  // Informations temporelles
+  visitDate         DateTime          @default(now()) @map("visit_date")
+  season            Season?           // Saison de la visite
+  
+  // Profil du visiteur
+  visitorProfile    VisitorProfile?   @map("visitor_profile")
+  stayDuration      StayDuration?     @map("stay_duration")
+  countryOfOrigin   String?           @map("country_origin") // Code pays ISO (FR, US, JP, etc.)
+  
+  // Informations de réservation
+  bookingMode       BookingMode?      @map("booking_mode")
+  travelReason      TravelReason?     @map("travel_reason")
+  
+  // Transport et centres d'intérêt (peuvent être multiples)
+  transportModes    String?           @map("transport_modes") // JSON array: ["car", "train", "plane"]
+  interests         String?           // JSON array: ["culture", "nature", "gastronomy"]
+  
+  // Métadonnées
+  roadpressId       String?           @map("roadpress_id") // ID depuis l'app Roadpress
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  poi               Poi               @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  license           License           @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@index([poiId])
+  @@index([licenseId])
+  @@index([visitDate])
+  @@index([season])
+  @@index([visitorProfile])
+  @@index([countryOfOrigin])
+  @@map("poi_visits")
+}
+
+// Enums pour les données structurées
+
+enum Season {
+  WINTER      // Hiver
+  SPRING      // Printemps
+  SUMMER      // Été
+  FALL        // Automne
+}
+
+enum VisitorProfile {
+  SOLO              // Solo
+  COUPLE            // Couple
+  FAMILY            // Famille
+  FRIENDS           // Amis
+  ORGANIZED_GROUP   // Groupe organisé
+}
+
+enum StayDuration {
+  DAY_TRIP          // Excursion à la journée
+  ONE_NIGHT         // 1 nuit
+  TWO_TO_THREE      // 2-3 nuits
+  FOUR_TO_SEVEN     // 4-7 nuits
+  MORE_THAN_WEEK    // Plus d'une semaine
+}
+
+enum BookingMode {
+  DIRECT            // Réservation directe
+  ONLINE_PLATFORM   // Plateforme en ligne (Booking, Airbnb, etc.)
+  TRAVEL_AGENCY     // Agence de voyage
+  TOUR_OPERATOR     // Tour opérateur
+  OTHER             // Autre
+}
+
+enum TravelReason {
+  LEISURE           // Loisirs
+  BUSINESS          // Affaires
+  FAMILY_VISIT      // Visite familiale
+  EVENT             // Événement
+  HEALTH            // Santé/Cure
+  EDUCATION         // Éducation
+  OTHER             // Autre
 }
 
 // =====================================================

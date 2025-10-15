@@ -4,10 +4,12 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Map, { Marker, NavigationControl, FullscreenControl, Popup } from "react-map-gl";
 import type { MapRef } from "react-map-gl";
-import { MapPin, Users, Eye, Calendar, X, Navigation2 } from "lucide-react";
+import { MapPin, Users, Eye, Calendar, X, Navigation2, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { Skeleton, PageHeaderSkeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -20,6 +22,7 @@ import Supercluster from "supercluster";
 import type { BBox, GeoJsonProperties } from "geojson";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import * as XLSX from "xlsx";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 interface Poi {
@@ -51,6 +54,7 @@ const MAPBOX_ADMIN_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 export default function PoiMapClient() {
   const [selectedLicense, setSelectedLicense] = useState<string>("all");
   const [selectedPoi, setSelectedPoi] = useState<Poi | null>(null);
+  const [excludeRoadpress, setExcludeRoadpress] = useState<boolean>(false);
   const [viewState, setViewState] = useState({
     latitude: 46.603354,
     longitude: 1.888334,
@@ -77,9 +81,22 @@ export default function PoiMapClient() {
   });
 
   const filteredPois = useMemo(() => {
-    if (selectedLicense === "all") return pois;
-    return pois.filter(poi => poi.license.id === selectedLicense);
-  }, [pois, selectedLicense]);
+    let filtered = pois;
+    
+    // Exclure Roadpress si la case est cochée
+    if (excludeRoadpress) {
+      filtered = filtered.filter(poi => 
+        poi.license.clientName.toLowerCase() !== "roadpress"
+      );
+    }
+    
+    // Filtrer par licence sélectionnée
+    if (selectedLicense !== "all") {
+      filtered = filtered.filter(poi => poi.license.id === selectedLicense);
+    }
+    
+    return filtered;
+  }, [pois, selectedLicense, excludeRoadpress]);
 
   const { clusters, supercluster } = useMemo(() => {
     if (!filteredPois.length) return { clusters: [], supercluster: null };
@@ -139,6 +156,181 @@ export default function PoiMapClient() {
     [supercluster]
   );
 
+  const handleExportToExcel = useCallback(async () => {
+    if (!filteredPois.length) {
+      alert("Aucun POI à exporter");
+      return;
+    }
+
+    try {
+      // Récupérer toutes les visites pour les POIs filtrés
+      const poiIds = filteredPois.map(poi => poi.id);
+      console.log('[Export] Nombre de POIs filtrés:', filteredPois.length);
+      console.log('[Export] IDs des POIs:', poiIds);
+      
+      const response = await fetch(`/api/poi/visits/export?poiIds=${poiIds.join(',')}`);
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des visites');
+      }
+      
+      const visits = await response.json();
+      console.log('[Export] Nombre de visites reçues:', visits.length);
+      console.log('[Export] Première visite:', visits[0]);
+
+      if (!visits.length) {
+        alert("Aucune visite à exporter pour les POIs sélectionnés");
+        return;
+      }
+
+      // Mapper les enums en français
+      const seasonNamesFr: Record<string, string> = {
+        WINTER: "Hiver",
+        SPRING: "Printemps",
+        SUMMER: "Été",
+        FALL: "Automne",
+      };
+
+      const profileNamesFr: Record<string, string> = {
+        SOLO: "Solo",
+        COUPLE: "Couple",
+        FAMILY: "Famille",
+        FRIENDS: "Amis",
+        ORGANIZED_GROUP: "Groupe organisé",
+      };
+
+      const stayDurationFr: Record<string, string> = {
+        DAY_TRIP: "Excursion à la journée",
+        ONE_NIGHT: "1 nuit",
+        TWO_TO_THREE: "2-3 nuits",
+        FOUR_TO_SEVEN: "4-7 nuits",
+        MORE_THAN_WEEK: "Plus d{`'`}une semaine",
+      };
+
+      const bookingModeFr: Record<string, string> = {
+        DIRECT: "Réservation directe",
+        ONLINE_PLATFORM: "Plateforme en ligne",
+        TRAVEL_AGENCY: "Agence de voyage",
+        TOUR_OPERATOR: "Tour opérateur",
+        OTHER: "Autre",
+      };
+
+      const travelReasonFr: Record<string, string> = {
+        LEISURE: "Loisirs",
+        BUSINESS: "Affaires",
+        FAMILY_VISIT: "Visite familiale",
+        EVENT: "Événement",
+        HEALTH: "Santé/Cure",
+        EDUCATION: "Éducation",
+        OTHER: "Autre",
+      };
+
+      // Préparer les données pour l{`'`}export - 1 ligne par visite
+      const exportData = visits.map((visit: any) => {
+        // Parser transportModes et interests si JSON
+        let transportModes = "N/A";
+        let interests = "N/A";
+
+        if (visit.transportModes) {
+          try {
+            const parsed = JSON.parse(visit.transportModes);
+            transportModes = Array.isArray(parsed) ? parsed.join(", ") : visit.transportModes;
+          } catch {
+            transportModes = visit.transportModes;
+          }
+        }
+
+        if (visit.interests) {
+          try {
+            const parsed = JSON.parse(visit.interests);
+            interests = Array.isArray(parsed) ? parsed.join(", ") : visit.interests;
+          } catch {
+            interests = visit.interests;
+          }
+        }
+
+        return {
+          "ID Visite": visit.id,
+          "Nom du POI": visit.poi.name,
+          "Adresse": visit.poi.address || "N/A",
+          "Latitude": visit.poi.latitude,
+          "Longitude": visit.poi.longitude,
+          "Client": visit.license.clientName,
+          "Clé de licence": visit.license.licenseKey,
+          "Date de visite": format(new Date(visit.visitDate), "dd/MM/yyyy HH:mm", { locale: fr }),
+          "Saison": visit.season ? seasonNamesFr[visit.season] || visit.season : "N/A",
+          "ID Roadpress": visit.roadpressId || "N/A",
+          
+          // Profil du visiteur
+          "Profil visiteur": visit.visitorProfile 
+            ? profileNamesFr[visit.visitorProfile] || visit.visitorProfile 
+            : "N/A",
+          "Durée du séjour": visit.stayDuration 
+            ? stayDurationFr[visit.stayDuration] || visit.stayDuration 
+            : "N/A",
+          "Pays d{`'`}origine": visit.countryOfOrigin || "N/A",
+          
+          // Informations de réservation
+          "Mode de réservation": visit.bookingMode 
+            ? bookingModeFr[visit.bookingMode] || visit.bookingMode 
+            : "N/A",
+          "Raison du voyage": visit.travelReason 
+            ? travelReasonFr[visit.travelReason] || visit.travelReason 
+            : "N/A",
+          
+          // Transport et intérêts
+          "Modes de transport": transportModes,
+          "Centres d{`'`}intérêt": interests,
+        };
+      });
+
+      // Créer un nouveau workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Créer la feuille de calcul
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      
+      // Ajuster la largeur des colonnes
+      const columnWidths = [
+        { wch: 30 },  // ID Visite
+        { wch: 40 },  // Nom du POI
+        { wch: 50 },  // Adresse
+        { wch: 12 },  // Latitude
+        { wch: 12 },  // Longitude
+        { wch: 25 },  // Client
+        { wch: 35 },  // Clé de licence
+        { wch: 20 },  // Date de visite
+        { wch: 15 },  // Saison
+        { wch: 35 },  // ID Roadpress
+        { wch: 20 },  // Profil visiteur
+        { wch: 25 },  // Durée du séjour
+        { wch: 20 },  // Pays d'origine
+        { wch: 25 },  // Mode de réservation
+        { wch: 20 },  // Raison du voyage
+        { wch: 30 },  // Modes de transport
+        { wch: 30 },  // Centres d'intérêt
+      ];
+      ws['!cols'] = columnWidths;
+      
+      // Ajouter la feuille au workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Visites POI");
+      
+      // Générer le nom de fichier avec la date
+      const clientName = selectedLicense === "all" 
+        ? "Tous_les_clients" 
+        : licenses.find(l => l.id === selectedLicense)?.clientName.replace(/\s+/g, "_") || "Client";
+      
+      const excludeText = excludeRoadpress ? "_sans_Roadpress" : "";
+      const fileName = `Visites_POI_${clientName}${excludeText}_${format(new Date(), "yyyy-MM-dd_HH-mm")}.xlsx`;
+      
+      // Télécharger le fichier
+      XLSX.writeFile(wb, fileName);
+    } catch (error) {
+      console.error('Erreur export:', error);
+      alert("Erreur lors de l{`'`}export des données");
+    }
+  }, [filteredPois, selectedLicense, licenses, excludeRoadpress]);
+
   useEffect(() => {
     if (filteredPois.length > 0 && mapRef.current) {
       const bounds = filteredPois.reduce(
@@ -195,26 +387,54 @@ export default function PoiMapClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Carte des POI</h1>
-          <p className="text-muted-foreground">
-            {filteredPois.length} point{filteredPois.length > 1 ? "s" : ""} d{"'"}intérêt
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Carte des POI</h1>
+            <p className="text-muted-foreground">
+              {filteredPois.length} point{filteredPois.length > 1 ? "s" : ""} d{"'"}intérêt
+            </p>
+          </div>
+          <Button onClick={handleExportToExcel} className="gap-2">
+            <Download className="h-4 w-4" />
+            Exporter vers Excel
+          </Button>
         </div>
-        <Select value={selectedLicense} onValueChange={setSelectedLicense}>
-          <SelectTrigger className="w-[250px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tous les clients</SelectItem>
-            {licenses.map((license) => (
-              <SelectItem key={license.id} value={license.id}>
-                {license.clientName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <Label htmlFor="license-filter" className="text-sm font-medium whitespace-nowrap">
+              Filtrer par client :
+            </Label>
+            <Select value={selectedLicense} onValueChange={setSelectedLicense}>
+              <SelectTrigger id="license-filter" className="w-[250px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les clients</SelectItem>
+                {licenses.map((license) => (
+                  <SelectItem key={license.id} value={license.id}>
+                    {license.clientName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox 
+              id="exclude-roadpress"
+              checked={excludeRoadpress}
+              onCheckedChange={(checked) => setExcludeRoadpress(checked === true)}
+            />
+            <Label 
+              htmlFor="exclude-roadpress" 
+              className="text-sm font-medium cursor-pointer"
+            >
+              Exclure le client de démo (Roadpress)
+            </Label>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

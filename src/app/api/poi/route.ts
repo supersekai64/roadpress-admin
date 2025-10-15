@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const licenseId = searchParams.get('licenseId');
+    const includeVisits = searchParams.get('includeVisits') === 'true';
 
     // Construire la requête avec filtre optionnel
     const where = licenseId ? { licenseId } : {};
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
             clientName: true,
           },
         },
+        visits: includeVisits,
       },
       orderBy: {
         createdAt: 'desc',

@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     clientName = license.clientName;
 
     const body = await request.json();
-    const { pois } = body;
+    const { pois, visits } = body;
 
     if (!Array.isArray(pois)) {
       await DebugLogger.logError({
@@ -117,6 +117,13 @@ export async function POST(request: Request) {
     }
 
     const results = {
+      created: 0,
+      updated: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    const visitResults = {
       created: 0,
       updated: 0,
       failed: 0,
@@ -211,6 +218,88 @@ export async function POST(request: Request) {
       }
     }
 
+    // Traitement des visites (si présentes)
+    if (Array.isArray(visits) && visits.length > 0) {
+      for (const visitData of visits) {
+        try {
+          const { poiId, roadpressId, visitDate, season, visitorProfile, stayDuration, countryOfOrigin, bookingMode, travelReason, transportModes, interests } = visitData;
+
+          // Validation des champs obligatoires
+          if (!poiId || !roadpressId) {
+            visitResults.failed++;
+            visitResults.errors.push(`Visite manquante poiId ou roadpressId`);
+            continue;
+          }
+
+          // Trouver le POI correspondant dans notre base
+          const poi = await prisma.poi.findUnique({
+            where: {
+              licenseId_poiId: {
+                licenseId: license.id,
+                poiId: poiId,
+              },
+            },
+          });
+
+          if (!poi) {
+            visitResults.failed++;
+            visitResults.errors.push(`POI ${poiId} introuvable pour la visite ${roadpressId}`);
+            continue;
+          }
+
+          // Vérifier si la visite existe déjà (par roadpressId + licenseId)
+          const existingVisit = await prisma.poiVisit.findFirst({
+            where: {
+              roadpressId: roadpressId,
+              licenseId: license.id,
+            },
+          });
+
+          if (existingVisit) {
+            // Mettre à jour la visite existante
+            await prisma.poiVisit.update({
+              where: { id: existingVisit.id },
+              data: {
+                visitDate: visitDate ? new Date(visitDate) : existingVisit.visitDate,
+                season: season || existingVisit.season,
+                visitorProfile: visitorProfile || existingVisit.visitorProfile,
+                stayDuration: stayDuration || existingVisit.stayDuration,
+                countryOfOrigin: countryOfOrigin || existingVisit.countryOfOrigin,
+                bookingMode: bookingMode || existingVisit.bookingMode,
+                travelReason: travelReason || existingVisit.travelReason,
+                transportModes: transportModes || existingVisit.transportModes,
+                interests: interests || existingVisit.interests,
+              },
+            });
+            visitResults.updated++;
+          } else {
+            // Créer une nouvelle visite
+            await prisma.poiVisit.create({
+              data: {
+                poiId: poi.id,
+                licenseId: license.id,
+                roadpressId,
+                visitDate: visitDate ? new Date(visitDate) : new Date(),
+                season,
+                visitorProfile,
+                stayDuration,
+                countryOfOrigin,
+                bookingMode,
+                travelReason,
+                transportModes,
+                interests,
+              },
+            });
+            visitResults.created++;
+          }
+        } catch (error) {
+          visitResults.failed++;
+          const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+          visitResults.errors.push(`Visite "${visitData.roadpressId || 'inconnu'}" : ${errorMessage}`);
+        }
+      }
+    }
+
     const duration = Date.now() - startTime;
 
     // Log de succès
@@ -218,16 +307,19 @@ export async function POST(request: Request) {
       action: 'sync',
       licenseId,
       clientName,
-      message: `Synchronisation de ${pois.length} POI(s)`,
-      requestData: { poisCount: pois.length },
-      responseData: results,
+      message: `Synchronisation de ${pois.length} POI(s) et ${visits?.length || 0} visite(s)`,
+      requestData: { poisCount: pois.length, visitsCount: visits?.length || 0 },
+      responseData: { pois: results, visits: visitResults },
       duration,
     });
 
     return NextResponse.json({
       success: true,
-      message: `Synchronisation terminée : ${results.created} créé(s), ${results.updated} mis à jour`,
-      results,
+      message: `Synchronisation terminée : ${results.created} POI(s) créé(s), ${results.updated} mis à jour, ${visitResults.created} visite(s) créée(s), ${visitResults.updated} mise(s) à jour`,
+      results: {
+        pois: results,
+        visits: visitResults,
+      },
       client: clientName,
     });
   } catch (error) {

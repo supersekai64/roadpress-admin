@@ -33,6 +33,34 @@ Ce template Next.js est conçu pour être un **point de départ professionnel** 
 - Supprimer un package : `pnpm remove <package>`
 - Exécuter un script : `pnpm run <script>` ou `pnpm <script>`
 
+## 🚨 RÈGLE CRITIQUE - BASE DE DONNÉES (OBLIGATOIRE)
+
+### ⚠️ AVANT TOUTE OPÉRATION PRISMA DESTRUCTIVE
+
+**TOUJOURS faire un backup de la base de données AVANT :**
+- `prisma migrate reset`
+- `prisma migrate dev` (si changements majeurs)
+- `prisma db push` (si suppression de colonnes/tables)
+- Toute commande qui peut supprimer/modifier des données
+
+**Commande obligatoire :**
+```bash
+pnpm db:backup
+```
+
+**JAMAIS exécuter ces commandes sans backup préalable :**
+- ❌ `prisma migrate reset` sans backup
+- ❌ `prisma migrate reset --force` sans backup
+- ❌ `prisma db push --accept-data-loss` sans backup
+
+**Si l'utilisateur demande une migration Prisma :**
+1. ✅ **TOUJOURS** proposer de faire un backup d'abord
+2. ✅ Attendre la confirmation de l'utilisateur
+3. ✅ Exécuter `pnpm db:backup`
+4. ✅ Seulement après, procéder à la migration
+
+**Cette règle est ABSOLUE et NON-NÉGOCIABLE.**
+
 ## Configuration du projet
 - Next.js avec App Router
 - TypeScript
