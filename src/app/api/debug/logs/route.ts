@@ -1,118 +1,234 @@
-import { NextRequest, NextResponse } from 'next/server';import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';import { NextRequest, NextResponse } from 'next/server';import { NextRequest, NextResponse } from 'next/server';
 
-import { auth } from '@/lib/auth.server';import { auth } from '@/lib/auth.server';
+import { auth } from '@/lib/auth.server';
 
-import prisma from '@/lib/prisma';import prisma from '@/lib/prisma';
+import prisma from '@/lib/prisma';import { auth } from '@/lib/auth.server';import { auth } from '@/lib/auth.server';
 
 
 
-/**// Force rebuild after project rename - 2025-10-15
+/**import prisma from '@/lib/prisma';import prisma from '@/lib/prisma';
 
- * GET /api/debug/logs - Récupère les logs de debug avec pagination et filtres
+ * GET /api/debug/logs
 
- * SIMPLIFIÉ - Copie de la structure de /api/licenses qui fonctionneinterface DebugLogFilters {
+ * Récupère les logs de debug avec pagination et filtres
 
- */  readonly category?: string;
+ */
 
-export async function GET(request: NextRequest) {  readonly status?: string;
+export async function GET(request: NextRequest) {/**// Force rebuild after project rename - 2025-10-15
 
-  try {  readonly action?: string;
+  try {
 
-    // Auth (même pattern que /api/licenses)  readonly licenseId?: string;
+    const session = await auth(); * GET /api/debug/logs - Récupère les logs de debug avec pagination et filtres
 
-    const session = await auth();  readonly clientName?: string;
+    if (!session) {
 
-    if (!session) {  readonly dateFrom?: string;
-
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });  readonly dateTo?: string;
-
-    }  readonly search?: string;
-
-}
-
-    const { searchParams } = new URL(request.url);
-
-    interface SortOptions {
-
-    // Pagination  readonly field: string;
-
-    const page = parseInt(searchParams.get('page') || '1');  readonly direction: 'asc' | 'desc';
-
-    const limit = parseInt(searchParams.get('limit') || '50');}
-
-    const skip = (page - 1) * limit;
-
-export async function GET(request: NextRequest) {
-
-    // Filtres  try {
-
-    const category = searchParams.get('category');    // Vérifier l'authentification
-
-    const status = searchParams.get('status');    const session = await auth();
-
-    const search = searchParams.get('search');    if (!session) {
-
-          return NextResponse.json(
-
-    // Tri        { error: 'Non autorisé' },
-
-    const sortField = searchParams.get('sortField') || 'timestamp';        { status: 401 }
-
-    const sortDirection = searchParams.get('sortDirection') || 'desc';      );
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 }); * SIMPLIFIÉ - Copie de la structure de /api/licenses qui fonctionneinterface DebugLogFilters {
 
     }
 
-    // Construction WHERE clause
+ */  readonly category?: string;
 
-    const where: any = {};    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(request.url);
 
-    
+    export async function GET(request: NextRequest) {  readonly status?: string;
 
-    if (category && category !== 'ALL') {    // Pagination
+    const page = parseInt(searchParams.get('page') || '1');
 
-      where.category = category;    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');  try {  readonly action?: string;
 
-    }    const limit = parseInt(searchParams.get('limit') || '50');
+    const skip = (page - 1) * limit;
 
-    const offset = (page - 1) * limit;
+    // Auth (même pattern que /api/licenses)  readonly licenseId?: string;
+
+    const category = searchParams.get('category');
+
+    const status = searchParams.get('status');    const session = await auth();  readonly clientName?: string;
+
+    const search = searchParams.get('search');
+
+    const sortField = searchParams.get('sortField') || 'timestamp';    if (!session) {  readonly dateFrom?: string;
+
+    const sortDirection = searchParams.get('sortDirection') || 'desc';
+
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });  readonly dateTo?: string;
+
+    const where: any = {};
+
+    }  readonly search?: string;
+
+    if (category && category !== 'ALL') {
+
+      where.category = category;}
+
+    }
+
+    const { searchParams } = new URL(request.url);
 
     if (status && status !== 'ALL') {
 
-      where.status = status;    // Filtres
+      where.status = status;    interface SortOptions {
 
-    }    const filters: DebugLogFilters = {
+    }
 
-      category: searchParams.get('category') || undefined,
+    // Pagination  readonly field: string;
 
-    if (search) {      status: searchParams.get('status') || undefined,
+    if (search) {
 
-      where.OR = [      action: searchParams.get('action') || undefined,
+      where.OR = [    const page = parseInt(searchParams.get('page') || '1');  readonly direction: 'asc' | 'desc';
 
-        { action: { contains: search, mode: 'insensitive' } },      licenseId: searchParams.get('licenseId') || undefined,
+        { action: { contains: search, mode: 'insensitive' } },
 
-        { message: { contains: search, mode: 'insensitive' } },      clientName: searchParams.get('clientName') || undefined,
+        { message: { contains: search, mode: 'insensitive' } },    const limit = parseInt(searchParams.get('limit') || '50');}
 
-        { clientName: { contains: search, mode: 'insensitive' } },      dateFrom: searchParams.get('dateFrom') || undefined,
+        { clientName: { contains: search, mode: 'insensitive' } },
+
+      ];    const skip = (page - 1) * limit;
+
+    }
+
+export async function GET(request: NextRequest) {
+
+    const [logs, totalCount] = await Promise.all([
+
+      prisma.debugLog.findMany({    // Filtres  try {
+
+        where,
+
+        orderBy: { [sortField]: sortDirection },    const category = searchParams.get('category');    // Vérifier l'authentification
+
+        skip,
+
+        take: limit,    const status = searchParams.get('status');    const session = await auth();
+
+        include: {
+
+          license: {    const search = searchParams.get('search');    if (!session) {
+
+            select: {
+
+              licenseKey: true,          return NextResponse.json(
+
+              clientName: true,
+
+            },    // Tri        { error: 'Non autorisé' },
+
+          },
+
+        },    const sortField = searchParams.get('sortField') || 'timestamp';        { status: 401 }
+
+      }),
+
+      prisma.debugLog.count({ where }),    const sortDirection = searchParams.get('sortDirection') || 'desc';      );
+
+    ]);
+
+    }
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Construction WHERE clause
+
+    return NextResponse.json({
+
+      logs,    const where: any = {};    const { searchParams } = new URL(request.url);
+
+      pagination: {
+
+        currentPage: page,    
+
+        totalPages,
+
+        totalCount,    if (category && category !== 'ALL') {    // Pagination
+
+        limit,
+
+        hasNextPage: page < totalPages,      where.category = category;    const page = parseInt(searchParams.get('page') || '1');
+
+        hasPrevPage: page > 1,
+
+      },    }    const limit = parseInt(searchParams.get('limit') || '50');
+
+    });
+
+    const offset = (page - 1) * limit;
+
+  } catch (error) {
+
+    console.error('Erreur GET /api/debug/logs:', error);    if (status && status !== 'ALL') {
+
+    return NextResponse.json(
+
+      { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown' },      where.status = status;    // Filtres
+
+      { status: 500 }
+
+    );    }    const filters: DebugLogFilters = {
+
+  }
+
+}      category: searchParams.get('category') || undefined,
+
+
+
+/**    if (search) {      status: searchParams.get('status') || undefined,
+
+ * DELETE /api/debug/logs
+
+ * Supprime un log spécifique ou tous les logs      where.OR = [      action: searchParams.get('action') || undefined,
+
+ */
+
+export async function DELETE(request: NextRequest) {        { action: { contains: search, mode: 'insensitive' } },      licenseId: searchParams.get('licenseId') || undefined,
+
+  try {
+
+    const session = await auth();        { message: { contains: search, mode: 'insensitive' } },      clientName: searchParams.get('clientName') || undefined,
+
+    if (!session) {
+
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });        { clientName: { contains: search, mode: 'insensitive' } },      dateFrom: searchParams.get('dateFrom') || undefined,
+
+    }
 
       ];      dateTo: searchParams.get('dateTo') || undefined,
 
-    }      search: searchParams.get('search') || undefined,
+    const { searchParams } = new URL(request.url);
 
-    };
+    const id = searchParams.get('id');    }      search: searchParams.get('search') || undefined,
 
-    // Requêtes en parallèle
 
-    const [logs, totalCount] = await Promise.all([    // Tri
 
-      prisma.debugLog.findMany({    const sortField = searchParams.get('sortField') || 'timestamp';
+    if (id) {    };
 
-        where,    const sortDirection = (searchParams.get('sortDirection') || 'desc') as 'asc' | 'desc';
+      await prisma.debugLog.delete({ where: { id } });
 
-        orderBy: { [sortField]: sortDirection },
+    } else {    // Requêtes en parallèle
 
-        skip,    // Construction de la requête WHERE
+      await prisma.debugLog.deleteMany({});
 
-        take: limit,    const whereClause: any = {};
+    }    const [logs, totalCount] = await Promise.all([    // Tri
+
+
+
+    return NextResponse.json({ success: true });      prisma.debugLog.findMany({    const sortField = searchParams.get('sortField') || 'timestamp';
+
+
+
+  } catch (error) {        where,    const sortDirection = (searchParams.get('sortDirection') || 'desc') as 'asc' | 'desc';
+
+    console.error('Erreur DELETE /api/debug/logs:', error);
+
+    return NextResponse.json(        orderBy: { [sortField]: sortDirection },
+
+      { error: 'Erreur serveur' },
+
+      { status: 500 }        skip,    // Construction de la requête WHERE
+
+    );
+
+  }        take: limit,    const whereClause: any = {};
+
+}
 
         include: {
 
