@@ -44,8 +44,7 @@ prisma/*.ts
 *.swp
 *.swo
 
-# Logs
-logs
+# Logs (fichiers uniquement, pas les dossiers src/app/api/debug/logs)
 *.log
 npm-debug.log*
 pnpm-debug.log*
