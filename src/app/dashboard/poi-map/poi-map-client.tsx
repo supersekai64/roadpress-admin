@@ -765,18 +765,11 @@ export default function PoiMapClient() {
             <FullscreenControl position="top-right" />
 
             {/* Stats Overlay */}
-            <div className="absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 space-y-2">
+            <div className="absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg px-3 py-2 space-y-2">
               <div className="flex items-center gap-3">
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Total POI</div>
-                  <div className="text-lg font-bold">{filteredPois.length}</div>
-                </div>
-                <div className="h-8 w-px bg-border" />
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground">Total visites</div>
-                  <div className="text-lg font-bold">
-                    {filteredPois.reduce((acc, poi) => acc + poi.visitCount, 0).toLocaleString()}
-                  </div>
+                <div className="text-left">
+                  <div className="text-sm text-muted-foreground">Total POI : <span className="font-bold">{filteredPois.length}</span></div>
+                  <div className="text-sm text-muted-foreground">Total visites : <span className="font-bold">{filteredPois.reduce((acc, poi) => acc + poi.visitCount, 0).toLocaleString()}</span></div>
                 </div>
               </div>
             </div>
