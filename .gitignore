@@ -39,6 +39,11 @@ yarn-error.log*
 .env*.production
 .env
 
+# database backups
+/backups
+*.sql
+*.dump
+
 # vercel
 .vercel
 

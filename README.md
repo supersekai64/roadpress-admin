@@ -1,21 +1,8 @@
 #  RoadPress Admin - Next.js Dashboard
 
-Interface web moderne pour la gestion centralisée des licences, statistiques API et points d'intérêt (POI) RoadPress.
+Interface web moderne pour la gestion centralisée des licences, statistiques API et points d'intérêt (POI) Roadpress.
 
-## 🎯 Configuration Automatique
-
-**Plus besoin de modifier le schema Prisma entre local et production !**
-
-```bash
-# 🔧 Local: PostgreSQL classique (Docker)
-pnpm setup:env  # Guide de configuration automatique
-pnpm docker:up  # Démarre PostgreSQL
-pnpm dev        # C'est parti !
-
-# 🚀 Production: Prisma Accelerate (Vercel)
-# Configurez DATABASE_URL dans le dashboard Vercel
-# Le même code fonctionne partout ✨
-```
+---
 
 ## Stack Technique
 
@@ -36,8 +23,8 @@ pnpm dev        # C'est parti !
 ### 1. Cloner le repository
 
 ```bash
-git clone https://github.com/supersekai64/roadpress-mockup.git
-cd roadpress-mockup
+git clone https://github.com/supersekai64/roadpress-admin.git
+cd roadpress-admin
 ```
 
 ### 2. Installer les dépendances
@@ -129,7 +116,10 @@ pnpm dev:clean        # Kill les ports et relancer proprement
 # Base de données
 pnpm db:generate      # Générer le client Prisma
 pnpm db:push          # Push le schéma vers Postgres
-pnpm db:migrate       # Créer une migration
+pnpm db:migrate       # Créer une migration (LOCAL) avec backup AUTO
+pnpm db:migrate:prod  # ⚠️ Migration PRODUCTION avec backup AUTO
+pnpm db:backup        # 💾 Créer un backup de la base
+pnpm db:restore       # 🔄 Restaurer depuis un backup
 pnpm db:studio        # Ouvrir Prisma Studio (UI pour la DB)
 pnpm db:seed          # Seed la DB avec données de test
 
@@ -271,14 +261,6 @@ Chaque site WordPress client doit avoir :
 2. Une licence valide configurée
 3. HTTPS activé (obligatoire en production)
 
-### 📖 Documentation complète
-
-Voir [docs/API-KEYS-PUSH.md](./docs/API-KEYS-PUSH.md) pour :
-- Architecture détaillée
-- Exemple d'implémentation WordPress
-- Guide de dépannage
-- Sécurité et bonnes pratiques
-
 ---
 
 ## Prisma Studio
@@ -307,7 +289,7 @@ git push origin main
 
 1. [Vercel Dashboard](https://vercel.com/new)
 2. **Import Git Repository**
-3. Choisir votre repo `roadpress-mockup`
+3. Choisir votre repo `roadpress-admin`
 
 ### 3. Configurer les variables d'environnement
 
