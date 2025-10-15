@@ -175,6 +175,56 @@ export class DebugLogger {
       ...data,
     });
   }
+
+  /**
+   * Log un avertissement
+   */
+  static async logWarning(data: {
+    readonly category?: LogCategory;
+    readonly action: string;
+    readonly message: string;
+    readonly licenseId?: string;
+    readonly clientName?: string;
+    readonly requestData?: any;
+    readonly responseData?: any;
+  }): Promise<void> {
+    await this.log({
+      category: data.category || 'SYSTEM',
+      status: 'WARNING',
+      action: data.action,
+      message: data.message,
+      licenseId: data.licenseId,
+      clientName: data.clientName,
+      requestData: data.requestData,
+      responseData: data.responseData,
+    });
+  }
+
+  /**
+   * Log un succès
+   */
+  static async logSuccess(data: {
+    readonly category?: LogCategory;
+    readonly action: string;
+    readonly message: string;
+    readonly licenseId?: string;
+    readonly clientName?: string;
+    readonly requestData?: any;
+    readonly responseData?: any;
+    readonly duration?: number;
+  }): Promise<void> {
+    await this.log({
+      category: data.category || 'SYSTEM',
+      status: 'SUCCESS',
+      action: data.action,
+      message: data.message,
+      licenseId: data.licenseId,
+      clientName: data.clientName,
+      requestData: data.requestData,
+      responseData: data.responseData,
+      duration: data.duration,
+    });
+  }
 }
 
 /**
