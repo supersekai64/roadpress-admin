@@ -200,7 +200,7 @@ export default function DebugClient() {
         }
       });
 
-      const response = await fetch(`/api/debug/debug-logs?${params}`, {
+      const response = await fetch(`/api/debug/logs?${params}`, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',

@@ -11,7 +11,7 @@ Interface web moderne pour la gestion centralisée des licences, statistiques AP
 - **Base de données** : PostgreSQL + Prisma ORM (auto-config)
 - **Authentification** : NextAuth.js v5
 - **UI** : Tailwind CSS + shadcn/ui
-- **Graphiques** : Recharts
+- **Graphiques** : Chartjs (react)
 - **Tables** : TanStack Table
 - **Carte** : Mapbox GL JS
 - **Déploiement** : Vercel
