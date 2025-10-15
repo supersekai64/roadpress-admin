@@ -247,10 +247,12 @@ export async function POST(request: Request) {
             continue;
           }
 
-          // Vérifier si la visite existe déjà (par roadpressId + licenseId)
+          // Vérifier si la visite existe déjà (par roadpressId + poiId + licenseId)
+          // Un même roadpressId peut avoir plusieurs visites (un POI par visite)
           const existingVisit = await prisma.poiVisit.findFirst({
             where: {
               roadpressId: roadpressId,
+              poiId: poi.id,
               licenseId: license.id,
             },
           });
