@@ -55,7 +55,8 @@
     "setup:env": "node scripts/setup-env.js",
     "env:local": "node scripts/setup-env.js local && pnpm prisma generate",
     "env:production": "node scripts/setup-env.js production && pnpm prisma generate",
-    "secret:generate": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-nextauth-secret.ps1"
+    "secret:generate": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-nextauth-secret.ps1",
+    "check:prod": "powershell -ExecutionPolicy Bypass -File ./scripts/check-prod-config.ps1"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
