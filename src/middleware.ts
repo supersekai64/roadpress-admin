@@ -3,46 +3,11 @@ import type { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 
 /**
- * Liste des bots à bloquer (SEO, IA, crawlers)
- */
-const BLOCKED_BOTS = [
-  'googlebot',
-  'bingbot',
-  'slurp', // Yahoo
-  'duckduckbot',
-  'baiduspider',
-  'yandexbot',
-  'sogou',
-  'exabot',
-  'facebot',
-  'ia_archiver',
-  'gptbot', // OpenAI
-  'chatgpt-user',
-  'google-extended', // Google Bard/Gemini
-  'anthropic-ai', // Claude
-  'claude-web',
-  'claudebot',
-  'ccbot', // Common Crawl
-  'bytespider', // ByteDance (TikTok)
-  'diffbot',
-  'perplexitybot',
-  'amazonbot',
-  'omgilibot',
-  'applebot',
-  'youbot', // You.com
-  'crawler',
-  'spider',
-  'bot',
-  'scraper',
-];
-
-/**
- * Middleware combiné : Authentification + Blocage des bots
+ * MIDDLEWARE SIMPLIFIÉ POUR DEBUG
+ * Authentification uniquement, pas de blocage de bots
  */
 export default async function middleware(request: NextRequest) {
-  const userAgent = request.headers.get('user-agent')?.toLowerCase() || '';
-  
-  // 1. Autoriser robots.txt, sitemap.xml, ai.txt sans blocage
+  // 1. Autoriser robots.txt, sitemap.xml, ai.txt
   const isPublicFile = request.nextUrl.pathname.match(
     /^\/(robots\.txt|sitemap\.xml|ai\.txt)$/
   );
@@ -51,30 +16,16 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // 2. Autoriser les API publiques SANS auth middleware (gèrent leur propre auth)
+  // 2. Autoriser les API publiques (pas d'auth)
   const isPublicApi = request.nextUrl.pathname.match(
     /^\/api\/(auth|debug|licenses\/(verify|update|disassociate)|statistics|api-keys|poi\/sync)/
   );
   
   if (isPublicApi) {
-    // API publiques : passer sans auth middleware
     return NextResponse.next();
   }
   
-  // 3. Bloquer les bots SEO/IA sur les routes protégées
-  const isBot = BLOCKED_BOTS.some(bot => userAgent.includes(bot));
-  
-  if (isBot) {
-    console.log(`🚫 Bot bloqué: ${userAgent}`);
-    return new NextResponse('Access Denied', { 
-      status: 403,
-      headers: {
-        'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet, noimageindex',
-      },
-    });
-  }
-  
-  // 4. Authentification NextAuth pour les routes protégées
+  // 3. Auth pour le reste
   return auth(request as any) as any;
 }
 
