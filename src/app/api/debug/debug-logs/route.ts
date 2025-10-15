@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth.server';
 import prisma from '@/lib/prisma';
 
+// Force rebuild after project rename - 2025-10-15
+
 interface DebugLogFilters {
   readonly category?: string;
   readonly status?: string;
