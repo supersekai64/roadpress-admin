@@ -241,6 +241,11 @@ export default function PoiMapClient() {
     return supercluster.getClusters(bbox, zoom);
   }, [supercluster, viewState]);
 
+  // Calculer le nombre de clients actifs
+  const activeClientsCount = useMemo(() => {
+    return new Set(filteredPois.map(poi => poi.license.id)).size;
+  }, [filteredPois]);
+
   const handleClusterClick = useCallback(
     (clusterId: number, longitude: number, latitude: number) => {
       if (!supercluster || !mapRef.current) return;
@@ -494,9 +499,6 @@ export default function PoiMapClient() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Carte des POI</h1>
-            <p className="text-muted-foreground">
-              {filteredPois.length} point{filteredPois.length > 1 ? "s" : ""} d{"'"}intérêt
-            </p>
           </div>
           <div className="flex gap-4 items-center">
             <div className="flex items-center gap-2">
@@ -546,7 +548,7 @@ export default function PoiMapClient() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {/* Client */}
               <div className="space-y-2">
-                <Label htmlFor="license-filter">Client</Label>
+                <Label htmlFor="license-filter">Client ({activeClientsCount})</Label>
                 <Select value={selectedLicense} onValueChange={setSelectedLicense}>
                   <SelectTrigger id="license-filter">
                     <SelectValue placeholder="Tous les clients" />
@@ -591,7 +593,7 @@ export default function PoiMapClient() {
                     <SelectItem value="SOLO">Solo</SelectItem>
                     <SelectItem value="COUPLE">Couple</SelectItem>
                     <SelectItem value="FAMILY">Famille</SelectItem>
-                    <SelectItem value="FRIENDS">Amis</SelectItem>
+                    <SelectItem value="FRIENDS">Groupe d&apos;amis</SelectItem>
                     <SelectItem value="ORGANIZED_GROUP">Groupe organisé</SelectItem>
                   </SelectContent>
                 </Select>
@@ -610,7 +612,7 @@ export default function PoiMapClient() {
                     <SelectItem value="BUSINESS">Affaires</SelectItem>
                     <SelectItem value="FAMILY_VISIT">Visite familiale</SelectItem>
                     <SelectItem value="EVENT">Événement</SelectItem>
-                    <SelectItem value="HEALTH">Santé/Cure</SelectItem>
+                    <SelectItem value="HEALTH">Santé</SelectItem>
                     <SelectItem value="EDUCATION">Éducation</SelectItem>
                     <SelectItem value="OTHER">Autre</SelectItem>
                   </SelectContent>
@@ -658,44 +660,8 @@ export default function PoiMapClient() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total POIs</CardTitle>
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{filteredPois.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total visites</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {filteredPois.reduce((acc, poi) => acc + poi.visitCount, 0).toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Clients actifs</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {new Set(filteredPois.map(poi => poi.license.id)).size}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 relative">
           <Map
             ref={mapRef}
             {...viewState}
@@ -706,51 +672,63 @@ export default function PoiMapClient() {
             onLoad={(e) => {
               const map = e.target;
               
-              // Activer les bâtiments 3D
-              map.on('style.load', () => {
-                // Ajouter la couche de bâtiments 3D si elle n'existe pas déjà
-                const layers = map.getStyle().layers;
-                const labelLayerId = layers?.find(
-                  (layer) => layer.type === 'symbol' && layer.layout && 'text-field' in layer.layout
-                )?.id;
-
-                // Activer l'extrusion des bâtiments
-                if (!map.getLayer('3d-buildings')) {
-                  map.addLayer(
-                    {
-                      id: '3d-buildings',
-                      source: 'composite',
-                      'source-layer': 'building',
-                      filter: ['==', 'extrude', 'true'],
-                      type: 'fill-extrusion',
-                      minzoom: 15,
-                      paint: {
-                        'fill-extrusion-color': '#aaa',
-                        'fill-extrusion-height': [
-                          'interpolate',
-                          ['linear'],
-                          ['zoom'],
-                          15,
-                          0,
-                          15.05,
-                          ['get', 'height']
-                        ],
-                        'fill-extrusion-base': [
-                          'interpolate',
-                          ['linear'],
-                          ['zoom'],
-                          15,
-                          0,
-                          15.05,
-                          ['get', 'min_height']
-                        ],
-                        'fill-extrusion-opacity': 0.6
-                      }
-                    },
-                    labelLayerId
-                  );
+              // Fonction pour ajouter les bâtiments 3D
+              const add3DBuildings = () => {
+                // Vérifier si le style est chargé
+                if (!map.isStyleLoaded()) {
+                  setTimeout(add3DBuildings, 100);
+                  return;
                 }
-              });
+
+                // Ajouter la couche de bâtiments 3D si elle n'existe pas déjà
+                if (!map.getLayer('3d-buildings')) {
+                  const layers = map.getStyle().layers;
+                  const labelLayerId = layers?.find(
+                    (layer) => layer.type === 'symbol' && layer.layout && 'text-field' in layer.layout
+                  )?.id;
+
+                  try {
+                    map.addLayer(
+                      {
+                        id: '3d-buildings',
+                        source: 'composite',
+                        'source-layer': 'building',
+                        filter: ['==', 'extrude', 'true'],
+                        type: 'fill-extrusion',
+                        minzoom: 14,
+                        paint: {
+                          'fill-extrusion-color': '#aaa',
+                          'fill-extrusion-height': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            14,
+                            0,
+                            14.5,
+                            ['get', 'height']
+                          ],
+                          'fill-extrusion-base': [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            14,
+                            0,
+                            14.5,
+                            ['get', 'min_height']
+                          ],
+                          'fill-extrusion-opacity': 0.6
+                        }
+                      },
+                      labelLayerId
+                    );
+                  } catch (error) {
+                    console.error('Erreur lors de l\'ajout de la couche 3D:', error);
+                  }
+                }
+              };
+
+              // Lancer l'ajout des bâtiments 3D
+              add3DBuildings();
               
               // Re-centrer la carte une fois qu'elle est chargée
               if (filteredPois.length > 0 && mapRef.current) {
@@ -786,6 +764,23 @@ export default function PoiMapClient() {
             <NavigationControl position="top-right" />
             <FullscreenControl position="top-right" />
 
+            {/* Stats Overlay */}
+            <div className="absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground">Total POI</div>
+                  <div className="text-lg font-bold">{filteredPois.length}</div>
+                </div>
+                <div className="h-8 w-px bg-border" />
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground">Total visites</div>
+                  <div className="text-lg font-bold">
+                    {filteredPois.reduce((acc, poi) => acc + poi.visitCount, 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Heatmap Layer */}
             {showHeatmap && heatmapData && (
               <Source
@@ -811,7 +806,9 @@ export default function PoiMapClient() {
                       ['linear'],
                       ['zoom'],
                       0, 1,
-                      15, 3
+                      10, 2,
+                      15, 4,
+                      20, 6
                     ],
                     // Gradient de couleur
                     'heatmap-color': [
@@ -825,14 +822,16 @@ export default function PoiMapClient() {
                       0.8, 'rgb(239, 138, 98)',
                       1, 'rgb(178, 24, 43)'
                     ],
-                    // Rayon des points de la heatmap (en pixels)
+                    // Rayon des points de la heatmap
                     'heatmap-radius': [
                       'interpolate',
                       ['linear'],
                       ['zoom'],
                       0, 2,
                       9, 20,
-                      15, 40
+                      15, 60,
+                      18, 100,
+                      20, 150
                     ],
                     // Opacité
                     'heatmap-opacity': [
@@ -840,7 +839,9 @@ export default function PoiMapClient() {
                       ['linear'],
                       ['zoom'],
                       7, 0.8,
-                      15, 0.6
+                      15, 0.75,
+                      18, 0.7,
+                      20, 0.65
                     ]
                   }}
                 />
