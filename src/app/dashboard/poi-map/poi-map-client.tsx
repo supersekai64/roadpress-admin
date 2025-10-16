@@ -855,13 +855,13 @@ export default function PoiMapClient() {
                 }, 0);
                 
                 // Colorisation par fréquentation
-                let clusterColor = "#3b82f6"; // bleu par défaut (faible)
+                let clusterColor = "#51a2ff "; // bleu par défaut (faible)
                 if (totalVisits > 100) {
                   clusterColor = "#ef4444"; // rouge (très forte)
                 } else if (totalVisits > 50) {
-                  clusterColor = "#f97316"; // orange (forte)
+                  clusterColor = "#ff8904"; // orange (forte)
                 } else if (totalVisits > 20) {
-                  clusterColor = "#eab308"; // jaune (moyenne)
+                  clusterColor = "#ffd6a7"; // jaune (moyenne)
                 }
 
                 return (
@@ -888,13 +888,13 @@ export default function PoiMapClient() {
               const poi = cluster.properties.poi as Poi;
 
               // Colorisation par fréquentation
-              let markerColor = "#3b82f6"; // bleu (faible)
+              let markerColor = "#51a2ff"; // bleu (faible)
               if (poi.visitCount > 100) {
                 markerColor = "#ef4444"; // rouge (très forte)
               } else if (poi.visitCount > 50) {
-                markerColor = "#f97316"; // orange (forte)
+                markerColor = "#ff8904"; // orange (forte)
               } else if (poi.visitCount > 20) {
-                markerColor = "#eab308"; // jaune (moyenne)
+                markerColor = "#ffd6a7"; // jaune (moyenne)
               }
 
               return (
