@@ -55,10 +55,10 @@ export default function LoginPage() {
           width={200}
           height={60}
           priority
-          className="w-full h-16"
+          className="w-full h-12"
         />
         <Card className="w-full">
-          <CardHeader className="space-y-1">
+          <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold">Interface d&apos;administration</CardTitle>
           <CardDescription>
             Connectez-vous pour accéder au tableau de bord
@@ -84,7 +84,7 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder=""
                   required
                   disabled={isLoading}
                   className="pr-10"
