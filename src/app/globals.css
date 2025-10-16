@@ -99,6 +99,17 @@
   border-bottom-color: hsl(var(--popover)) !important;
 }
 
+/* Forcer Inter sur tous les éléments Mapbox */
+.mapboxgl-map,
+.mapboxgl-canvas-container,
+.mapboxgl-ctrl,
+.mapboxgl-ctrl-group,
+.mapboxgl-ctrl-attrib,
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
 /* Styles pour les contrôles de navigation Mapbox avec Inter */
 .mapboxgl-ctrl {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
@@ -106,6 +117,29 @@
 
 .mapboxgl-ctrl-group button {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Forcer Inter sur les tooltips personnalisés des marqueurs Mapbox */
+.mapboxgl-map .group div[class*="opacity-0"],
+.mapboxgl-map .group div[class*="hover:opacity-100"],
+.mapboxgl-map div[class*="bg-popover"],
+.mapboxgl-canvas-container ~ div {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Forcer Inter sur TOUS les éléments à l'intérieur du conteneur Mapbox */
+.mapboxgl-map *,
+.mapboxgl-map div,
+.mapboxgl-map span,
+.mapboxgl-map p,
+.mapboxgl-map button {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Masquer l'attribution Mapbox en bas à droite */
+.mapboxgl-ctrl-attrib,
+.mapboxgl-ctrl-bottom-right {
+  display: none !important;
 }
 
 /* Styles pour les tooltips Chart.js avec police Inter */

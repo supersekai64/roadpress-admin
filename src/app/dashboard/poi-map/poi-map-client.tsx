@@ -765,11 +765,18 @@ export default function PoiMapClient() {
             <FullscreenControl position="top-right" />
 
             {/* Stats Overlay */}
-            <div className="absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg px-3 py-2 space-y-2">
+            <div 
+              className="absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg px-3 py-2 space-y-2"
+              style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+            >
               <div className="flex items-center gap-3">
                 <div className="text-left">
-                  <div className="text-sm text-muted-foreground">Total POI : <span className="font-bold">{filteredPois.length}</span></div>
-                  <div className="text-sm text-muted-foreground">Total visites : <span className="font-bold">{filteredPois.reduce((acc, poi) => acc + poi.visitCount, 0).toLocaleString()}</span></div>
+                  <div className="text-sm text-muted-foreground">
+                    Total {filteredPois.length > 1 ? 'POIs' : 'POI'} : <span className="font-bold">{filteredPois.length}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Total {filteredPois.reduce((acc, poi) => acc + poi.visitCount, 0) > 1 ? 'visites' : 'visite'} : <span className="font-bold">{filteredPois.reduce((acc, poi) => acc + poi.visitCount, 0).toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -913,10 +920,15 @@ export default function PoiMapClient() {
                         strokeWidth="1.5"
                       />
                     </div>
-                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg border border-border min-w-max z-10">
+                    <div 
+                      className="absolute -top-20 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg border border-border min-w-max z-10"
+                      style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                    >
                       <div className="font-semibold">{poi.name}</div>
                       <div className="text-muted-foreground">{poi.license.clientName}</div>
-                      <div className="text-muted-foreground">{poi.visitCount} visites</div>
+                      <div className="text-muted-foreground">
+                        {poi.visitCount} {poi.visitCount > 1 ? 'visites' : 'visite'}
+                      </div>
                     </div>
                   </div>
                 </Marker>
@@ -959,7 +971,9 @@ export default function PoiMapClient() {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="flex items-center gap-2">
                       <Eye className="h-4 w-4 text-muted-foreground" />
-                      <span>{selectedPoi.visitCount.toLocaleString()} visites</span>
+                      <span>
+                        {selectedPoi.visitCount.toLocaleString()} {selectedPoi.visitCount > 1 ? 'visites' : 'visite'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
