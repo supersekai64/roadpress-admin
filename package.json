@@ -51,8 +51,6 @@
     "db:create-admin": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/create-admin.ts",
     "create:user:paul": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/create-user-paul.ts",
     "db:setup": "pnpm docker:up && timeout /t 5 /nobreak && pnpm db:push && pnpm db:seed",
-    "migrate:poi": "node scripts/migrate-poi-data.mjs",
-    "migrate:poi:cleanup": "powershell -Command \"Remove-Item -Path ./scripts/migrate-poi-data.mjs -Force; Write-Host 'Script de migration supprimé avec succès !' -ForegroundColor Green\"",
     "diagnose": "node scripts/diagnose-prisma.js",
     "setup:env": "node scripts/setup-env.js",
     "env:local": "node scripts/setup-env.js local && pnpm prisma generate",

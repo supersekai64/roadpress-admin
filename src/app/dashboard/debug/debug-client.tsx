@@ -28,6 +28,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -102,6 +108,7 @@ interface DebugFilters {
   dateFrom: Date | undefined;
   dateTo: Date | undefined;
   search: string;
+  labels: string[];
 }
 
 export default function DebugClient() {
@@ -121,6 +128,7 @@ export default function DebugClient() {
     dateFrom: undefined,
     dateTo: undefined,
     search: '',
+    labels: [],
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
@@ -132,6 +140,37 @@ export default function DebugClient() {
   // État pour le filtre client avec recherche
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
+  
+  // État pour le filtre labels avec recherche
+  const [labelsSearchOpen, setLabelsSearchOpen] = useState(false);
+  const [labelsSearchQuery, setLabelsSearchQuery] = useState('');
+  
+  // État pour la dialog de détails
+  const [selectedLog, setSelectedLog] = useState<DebugLog | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+
+  // Fonction pour extraire le label d'une action
+  const getActionLabel = (action: string): string => {
+    // Règles de mapping des actions vers les labels
+    if (action.startsWith('PUSH_API_')) return 'API KEY';
+    if (action.startsWith('LICENSE_')) return 'LICENCE';
+    if (action.startsWith('POI_')) return 'POI';
+    if (action.startsWith('SYNC_')) return 'SYNCHRONISATION';
+    if (action.startsWith('AUTH_')) return 'AUTHENTIFICATION';
+    if (action.startsWith('API_USAGE_')) return 'USAGE API';
+    if (action.startsWith('PRICING_')) return 'TARIFICATION';
+    if (action.startsWith('SYSTEM_')) return 'SYSTÈME';
+    if (action.startsWith('ERROR_')) return 'ERREUR';
+    
+    // Par défaut, utiliser le premier segment avant le underscore
+    const parts = action.split('_');
+    return parts[0] || 'AUTRE';
+  };
+
+  // Calculer les labels uniques disponibles (basé sur TOUS les logs)
+  const availableLabels = Array.from(
+    new Set(logs.map(log => getActionLabel(log.action)))
+  ).sort();
 
   // Chargement des statistiques et filtres disponibles
   const loadStatsAndFilters = useCallback(async () => {
@@ -189,6 +228,8 @@ export default function DebugClient() {
           if (value instanceof Date) {
             params.append(key, value.toISOString());
           }
+        } else if (key === 'labels' && Array.isArray(value) && value.length > 0) {
+          params.append(key, value.join(','));
         } else if (typeof value === 'string' && value.trim()) {
           params.append(key, value);
         }
@@ -254,6 +295,7 @@ export default function DebugClient() {
     currentFilters.dateFrom,
     currentFilters.dateTo,
     currentFilters.search,
+    currentFilters.labels.join(','),
   ]); // Recharger si une de ces valeurs change
 
   // Gestion du tri
@@ -268,7 +310,7 @@ export default function DebugClient() {
   };
 
   // Gestion des filtres
-  const updateFilter = (key: keyof DebugFilters, value: string | Date | undefined) => {
+  const updateFilter = (key: keyof DebugFilters, value: string | Date | undefined | string[]) => {
     setCurrentFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
@@ -291,6 +333,8 @@ export default function DebugClient() {
           if (value instanceof Date) {
             params.append(key, value.toISOString());
           }
+        } else if (key === 'labels' && Array.isArray(value) && value.length > 0) {
+          params.append(key, value.join(','));
         } else if (typeof value === 'string' && value.trim()) {
           params.append(key, value);
         }
@@ -370,6 +414,7 @@ export default function DebugClient() {
       dateFrom: undefined,
       dateTo: undefined,
       search: '',
+      labels: [],
     });
     setCurrentPage(1);
   };
@@ -419,7 +464,7 @@ export default function DebugClient() {
   const getStatusInfo = (status: string) => {
     switch (status) {
       case 'SUCCESS':
-        return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100' };
+        return { icon: CheckCircle, color: 'text-success', bg: 'bg-green-100' };
       case 'INFO':
         return { icon: Info, color: 'text-blue-600', bg: 'bg-blue-100' };
       case 'WARNING':
@@ -583,22 +628,23 @@ export default function DebugClient() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                {/* Recherche globale */}
-                <div className="col-span-full space-y-2">
-                  <Label htmlFor="search">Recherche globale</Label>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="search"
-                      placeholder="Rechercher dans tous les champs..."
-                      value={currentFilters.search}
-                      onChange={(e) => updateFilter('search', e.target.value)}
-                      className="pl-8"
-                    />
-                  </div>
+              {/* Recherche globale */}
+              <div className="mb-4 space-y-2">
+                <Label htmlFor="search">Recherche globale</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    placeholder="Rechercher dans tous les champs..."
+                    value={currentFilters.search}
+                    onChange={(e) => updateFilter('search', e.target.value)}
+                    className="pl-8"
+                  />
                 </div>
+              </div>
 
+              {/* Filtres sur la même ligne */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
                 {/* Catégorie */}
                 <div className="space-y-2">
                   <Label htmlFor="category">Catégorie</Label>
@@ -618,6 +664,73 @@ export default function DebugClient() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Labels (multi-sélection) */}
+                <div className="space-y-2">
+                  <Label htmlFor="labels">Label {currentFilters.labels.length > 0 && `(${currentFilters.labels.length})`}</Label>
+                  <Popover open={labelsSearchOpen} onOpenChange={setLabelsSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={labelsSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        <span className="truncate">
+                          {currentFilters.labels.length === 0
+                            ? 'Tous les labels'
+                            : currentFilters.labels.length === 1
+                            ? currentFilters.labels[0]
+                            : `${currentFilters.labels.length} sélectionnés`}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                      <div className="flex items-center border-b px-3 bg-card">
+                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                        <Input
+                          placeholder="Rechercher un label..."
+                          value={labelsSearchQuery}
+                          onChange={(e) => setLabelsSearchQuery(e.target.value)}
+                          className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
+                        />
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto p-1">
+                        {availableLabels
+                          .filter((label) =>
+                            label.toLowerCase().includes(labelsSearchQuery.toLowerCase())
+                          )
+                          .map((label) => {
+                            const isSelected = currentFilters.labels.includes(label);
+                            return (
+                              <div
+                                key={label}
+                                className={cn(
+                                  'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                                  isSelected && 'bg-accent'
+                                )}
+                                onClick={() => {
+                                  const newLabels = isSelected
+                                    ? currentFilters.labels.filter(l => l !== label)
+                                    : [...currentFilters.labels, label];
+                                  updateFilter('labels', newLabels);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    isSelected ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {label}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Statut */}
@@ -643,7 +756,7 @@ export default function DebugClient() {
 
                 {/* Client */}
                 <div className="space-y-2">
-                  <Label htmlFor="client">Client</Label>
+                  <Label htmlFor="client">Client {currentFilters.clientName && '(1)'}</Label>
                   <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -669,51 +782,37 @@ export default function DebugClient() {
                         />
                       </div>
                       <div className="max-h-[300px] overflow-y-auto p-1">
-                        <div
-                          className={cn(
-                            'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
-                            !currentFilters.clientName && 'bg-accent'
-                          )}
-                          onClick={() => {
-                            updateFilter('clientName', '');
-                            setClientSearchOpen(false);
-                            setClientSearchQuery('');
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              'mr-2 h-4 w-4',
-                              !currentFilters.clientName ? 'opacity-100' : 'opacity-0'
-                            )}
-                          />
-                          Tous les clients
-                        </div>
                         {filters?.activeClients
                           .filter((client) =>
                             client.name.toLowerCase().includes(clientSearchQuery.toLowerCase())
                           )
-                          .map((client) => (
-                            <div
-                              key={client.id}
-                              className={cn(
-                                'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
-                                currentFilters.clientName === client.name && 'bg-accent'
-                              )}
-                              onClick={() => {
-                                updateFilter('clientName', client.name);
-                                setClientSearchOpen(false);
-                                setClientSearchQuery('');
-                              }}
-                            >
-                              <Check
+                          .map((client) => {
+                            const isSelected = currentFilters.clientName === client.name;
+                            return (
+                              <div
+                                key={client.id}
                                 className={cn(
-                                  'mr-2 h-4 w-4',
-                                  currentFilters.clientName === client.name ? 'opacity-100' : 'opacity-0'
+                                  'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                                  isSelected && 'bg-accent'
                                 )}
-                              />
-                              {client.name}
-                            </div>
-                          ))}
+                                onClick={() => {
+                                  // Si déjà sélectionné, décocher (vider le filtre)
+                                  // Sinon, sélectionner ce client
+                                  updateFilter('clientName', isSelected ? '' : client.name);
+                                  setClientSearchOpen(false);
+                                  setClientSearchQuery('');
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    isSelected ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {client.name}
+                              </div>
+                            );
+                          })}
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -782,12 +881,17 @@ export default function DebugClient() {
                     </PopoverContent>
                   </Popover>
                 </div>
-              </div>
 
-              <div className="flex justify-start items-center mt-4">
-                <Button variant="outline" onClick={clearFilters}>
-                  Effacer les filtres
-                </Button>
+                {/* Bouton Effacer les filtres */}
+                <div className="space-y-2 flex flex-col justify-end">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-10"
+                    onClick={clearFilters}
+                  >
+                    Effacer les filtres
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -922,8 +1026,8 @@ export default function DebugClient() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
                                   onClick={() => {
-                                    // Ouvrir un modal avec les détails complets
-                                    console.log('Détails du log :', log);
+                                    setSelectedLog(log);
+                                    setDetailsDialogOpen(true);
                                   }}
                                 >
                                   Voir détails
@@ -986,6 +1090,178 @@ export default function DebugClient() {
             </CardContent>
           </Card>
       </div>
+
+      {/* Dialog des détails du log */}
+      {selectedLog && (
+        <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Détails du log
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+              {/* Informations principales */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-sm">Horodatage</Label>
+                  <p className="font-mono text-sm">
+                    {new Date(selectedLog.timestamp).toLocaleString('fr-FR', {
+                      dateStyle: 'full',
+                      timeStyle: 'long',
+                    })}
+                  </p>
+                </div>
+                
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-sm">Catégorie</Label>
+                  <div>
+                    <Badge className={getCategoryColor(selectedLog.category)}>
+                      {selectedLog.category}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-sm">Action</Label>
+                  <p className="font-mono text-sm">{selectedLog.action}</p>
+                </div>
+                
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground text-sm">Statut</Label>
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const statusInfo = getStatusInfo(selectedLog.status);
+                      const StatusIcon = statusInfo.icon;
+                      return (
+                        <>
+                          <StatusIcon className={cn("h-4 w-4", statusInfo.color)} />
+                          <Badge variant="secondary" className={cn("text-xs", statusInfo.color)}>
+                            {selectedLog.status}
+                          </Badge>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+                
+                {selectedLog.method && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-sm">Méthode HTTP</Label>
+                    <p className="font-mono text-sm">{selectedLog.method}</p>
+                  </div>
+                )}
+                
+                {selectedLog.endpoint && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-sm">Endpoint</Label>
+                    <p className="font-mono text-sm">{selectedLog.endpoint}</p>
+                  </div>
+                )}
+                
+                {selectedLog.clientName && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-sm">Client</Label>
+                    <p className="font-mono text-sm">{selectedLog.clientName}</p>
+                  </div>
+                )}
+                
+                {selectedLog.licenseId && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-sm">License ID</Label>
+                    <p className="font-mono text-sm">{selectedLog.licenseId}</p>
+                  </div>
+                )}
+                
+                {selectedLog.duration !== null && selectedLog.duration !== undefined && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground text-sm">Durée</Label>
+                    <p className="font-mono text-sm">{formatDuration(selectedLog.duration)}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Message */}
+              {selectedLog.message && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-sm">Message</Label>
+                  <div className="p-3 bg-muted rounded-md">
+                    <p className="text-sm whitespace-pre-wrap">{selectedLog.message}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Request Data */}
+              {selectedLog.requestData && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-sm">Données de la requête</Label>
+                  <div className="p-3 bg-muted rounded-md overflow-x-auto">
+                    <pre className="text-xs font-mono">
+                      {JSON.stringify(selectedLog.requestData, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {/* Response Data */}
+              {selectedLog.responseData && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-sm">Données de la réponse</Label>
+                  <div className="p-3 bg-muted rounded-md overflow-x-auto">
+                    <pre className="text-xs font-mono">
+                      {JSON.stringify(selectedLog.responseData, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {/* Error Details */}
+              {selectedLog.errorDetails && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-sm text-destructive">Détails de l&apos;erreur</Label>
+                  <div className="p-3 bg-destructive/10 rounded-md overflow-x-auto border border-destructive/20">
+                    <pre className="text-xs font-mono text-destructive whitespace-pre-wrap">
+                      {selectedLog.errorDetails}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {/* JSON complet */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-muted-foreground text-sm">JSON complet</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(selectedLog, null, 2));
+                    }}
+                  >
+                    Copier JSON
+                  </Button>
+                </div>
+                <div className="p-3 bg-muted rounded-md overflow-x-auto max-h-[300px] overflow-y-auto">
+                  <pre className="text-xs font-mono">
+                    {JSON.stringify(selectedLog, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setDetailsDialogOpen(false)}
+              >
+                Fermer
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

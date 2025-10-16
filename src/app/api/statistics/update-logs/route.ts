@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { DebugLogger } from '@/lib/debug-logger';
 
 /**
  * Endpoint pour recevoir les logs emails/SMS du plugin
@@ -7,11 +8,31 @@ import prisma from '@/lib/prisma';
  * Body: { license_key, email_logs, sms_logs }
  */
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const body = await request.json();
     const { license_key, email_logs, sms_logs } = body;
 
     if (!license_key) {
+      await DebugLogger.log({
+        category: 'API_USAGE',
+        action: 'LOGS_UPDATE_FAILED',
+        method: 'POST',
+        endpoint: '/api/statistics/update-logs',
+        status: 'ERROR',
+        message: 'Clé de licence manquante',
+        requestData: { 
+          has_email_logs: !!email_logs, 
+          has_sms_logs: !!sms_logs,
+          email_count: Array.isArray(email_logs) ? email_logs.length : 0,
+          sms_count: Array.isArray(sms_logs) ? sms_logs.length : 0,
+        },
+        duration: Date.now() - startTime,
+        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
+      });
+      
       return NextResponse.json(
         { success: false, message: 'Clé de licence manquante' },
         { status: 400 }
@@ -23,6 +44,23 @@ export async function POST(request: NextRequest) {
     });
 
     if (!license || license.status !== 'ACTIVE') {
+      await DebugLogger.log({
+        category: 'API_USAGE',
+        action: 'LOGS_UPDATE_UNAUTHORIZED',
+        method: 'POST',
+        endpoint: '/api/statistics/update-logs',
+        status: 'ERROR',
+        message: 'Licence invalide ou inactive',
+        requestData: { 
+          license_key,
+          email_count: Array.isArray(email_logs) ? email_logs.length : 0,
+          sms_count: Array.isArray(sms_logs) ? sms_logs.length : 0,
+        },
+        duration: Date.now() - startTime,
+        ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+        userAgent: request.headers.get('user-agent') || undefined,
+      });
+      
       return NextResponse.json(
         { success: false, message: 'Licence invalide' },
         { status: 403 }
@@ -30,6 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Enregistrer les logs email
+    let emailLogsCreated = 0;
     if (Array.isArray(email_logs) && email_logs.length > 0) {
       const emailLogsData = email_logs.map((log) => ({
         licenseId: license.id,
@@ -43,9 +82,11 @@ export async function POST(request: NextRequest) {
         data: emailLogsData,
         skipDuplicates: true,
       });
+      emailLogsCreated = email_logs.length;
     }
 
     // Enregistrer les logs SMS
+    let smsLogsCreated = 0;
     if (Array.isArray(sms_logs) && sms_logs.length > 0) {
       const smsLogsData = sms_logs.map((log) => ({
         licenseId: license.id,
@@ -60,7 +101,31 @@ export async function POST(request: NextRequest) {
         data: smsLogsData,
         skipDuplicates: true,
       });
+      smsLogsCreated = sms_logs.length;
     }
+
+    // Log du succès
+    await DebugLogger.log({
+      category: 'API_USAGE',
+      action: 'LOGS_UPDATE_SUCCESS',
+      method: 'POST',
+      endpoint: '/api/statistics/update-logs',
+      licenseId: license.id,
+      clientName: license.clientName,
+      status: 'SUCCESS',
+      message: `Logs enregistrés (Emails: ${emailLogsCreated}, SMS: ${smsLogsCreated})`,
+      requestData: {
+        email_logs_count: emailLogsCreated,
+        sms_logs_count: smsLogsCreated,
+      },
+      responseData: {
+        email_logs_created: emailLogsCreated,
+        sms_logs_created: smsLogsCreated,
+      },
+      duration: Date.now() - startTime,
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      userAgent: request.headers.get('user-agent') || undefined,
+    });
 
     return NextResponse.json({
       success: true,
@@ -68,6 +133,21 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Erreur enregistrement logs:', error);
+    
+    // Log de l'erreur
+    await DebugLogger.log({
+      category: 'API_USAGE',
+      action: 'LOGS_UPDATE_ERROR',
+      method: 'POST',
+      endpoint: '/api/statistics/update-logs',
+      status: 'ERROR',
+      message: 'Erreur lors de l\'enregistrement des logs',
+      errorDetails: error instanceof Error ? error.stack : String(error),
+      duration: Date.now() - startTime,
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      userAgent: request.headers.get('user-agent') || undefined,
+    });
+    
     return NextResponse.json(
       { success: false, message: 'Erreur serveur' },
       { status: 500 }

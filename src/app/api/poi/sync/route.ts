@@ -3,8 +3,16 @@ import prisma from '@/lib/prisma';
 import { DebugLogger } from '@/lib/debug-logger';
 
 /**
+ * Fonction helper pour gérer le singulier/pluriel
+ */
+function pluralize(count: number, singular: string, plural?: string): string {
+  if (count <= 1) return `${count} ${singular}`;
+  return `${count} ${plural || singular + 's'}`;
+}
+
+/**
  * POST /api/poi/sync
- * Synchronise plusieurs POIs depuis un site client WordPress
+ * Synchronise plusieurs POI depuis un site client WordPress
  * 
  * Authentification : Header X-License-Key
  * 
@@ -34,7 +42,7 @@ export async function POST(request: Request) {
 
     if (!licenseKey) {
       await DebugLogger.logError({
-        action: 'sync',
+        action: 'SYNC_POI',
         message: 'Tentative de sync sans clé de licence',
         errorDetails: 'Header X-License-Key manquant',
       });
@@ -52,7 +60,7 @@ export async function POST(request: Request) {
 
     if (!license) {
       await DebugLogger.logError({
-        action: 'sync',
+        action: 'SYNC_POI',
         message: 'Tentative de sync avec clé invalide',
         errorDetails: `Clé: ${licenseKey.substring(0, 8)}...`,
       });
@@ -65,7 +73,7 @@ export async function POST(request: Request) {
 
     if (license.status !== 'ACTIVE') {
       await DebugLogger.logError({
-        action: 'sync',
+        action: 'SYNC_POI',
         licenseId: license.id,
         clientName: license.clientName,
         message: 'Tentative de sync avec licence inactive',
@@ -86,7 +94,7 @@ export async function POST(request: Request) {
 
     if (!Array.isArray(pois)) {
       await DebugLogger.logError({
-        action: 'sync',
+        action: 'SYNC_POI',
         licenseId,
         clientName,
         message: 'Format de données invalide',
@@ -102,7 +110,7 @@ export async function POST(request: Request) {
 
     if (pois.length === 0) {
       await DebugLogger.logWarning({
-        action: 'sync',
+        action: 'SYNC_POI',
         licenseId,
         clientName,
         message: 'Tentative de sync avec tableau vide',
@@ -306,10 +314,10 @@ export async function POST(request: Request) {
 
     // Log de succès
     await DebugLogger.logSuccess({
-      action: 'sync',
+      action: 'SYNC_POI',
       licenseId,
       clientName,
-      message: `Synchronisation de ${pois.length} POI(s) et ${visits?.length || 0} visite(s)`,
+      message: `Synchronisation de ${pluralize(pois.length, 'POI')} et ${pluralize(visits?.length || 0, 'visite')}`,
       requestData: { poisCount: pois.length, visitsCount: visits?.length || 0 },
       responseData: { pois: results, visits: visitResults },
       duration,
@@ -317,7 +325,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Synchronisation terminée : ${results.created} POI(s) créé(s), ${results.updated} mis à jour, ${visitResults.created} visite(s) créée(s), ${visitResults.updated} mise(s) à jour`,
+      message: `Synchronisation terminée : ${pluralize(results.created, 'POI créé')} , ${pluralize(results.updated, 'POI mis à jour')}, ${pluralize(visitResults.created, 'visite créée')}, ${pluralize(visitResults.updated, 'visite mise à jour')}`,
       results: {
         pois: results,
         visits: visitResults,
@@ -330,14 +338,14 @@ export async function POST(request: Request) {
     const errorStack = error instanceof Error ? error.stack : undefined;
 
     await DebugLogger.logError({
-      action: 'sync',
+      action: 'SYNC_POI',
       licenseId,
       clientName,
-      message: 'Erreur serveur lors de la synchronisation des POIs',
+      message: 'Erreur serveur lors de la synchronisation des POI',
       errorDetails: errorStack || errorMessage,
     });
 
-    console.error('Erreur sync POIs:', error);
+    console.error('Erreur sync POI :', error);
     return NextResponse.json(
       { 
         error: 'Erreur serveur lors de la synchronisation',

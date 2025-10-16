@@ -27,6 +27,21 @@ export async function GET(request: NextRequest) {
       where.status = status;
     }
     
+    const licenseId = searchParams.get('licenseId');
+    if (licenseId) {
+      where.licenseId = licenseId;
+    }
+    
+    const clientName = searchParams.get('clientName');
+    if (clientName) {
+      where.clientName = clientName;
+    }
+    
+    const action = searchParams.get('action');
+    if (action) {
+      where.action = { contains: action, mode: 'insensitive' };
+    }
+    
     const search = searchParams.get('search');
     if (search) {
       where.OR = [
@@ -45,6 +60,69 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo');
     if (dateTo) {
       where.timestamp = { ...where.timestamp, lte: new Date(dateTo) };
+    }
+
+    // Filtrage par labels
+    const labelsParam = searchParams.get('labels');
+    if (labelsParam) {
+      const labels = labelsParam.split(',').filter(Boolean);
+      if (labels.length > 0) {
+        // Mapper les labels vers les préfixes d'actions
+        const actionPrefixes: string[] = [];
+        labels.forEach(label => {
+          switch (label) {
+            case 'API KEY':
+              actionPrefixes.push('PUSH_API_');
+              break;
+            case 'LICENCE':
+              actionPrefixes.push('LICENSE_');
+              break;
+            case 'POI':
+              actionPrefixes.push('POI_');
+              break;
+            case 'SYNCHRONISATION':
+              actionPrefixes.push('SYNC_');
+              break;
+            case 'AUTHENTIFICATION':
+              actionPrefixes.push('AUTH_');
+              break;
+            case 'USAGE API':
+              actionPrefixes.push('API_USAGE_');
+              break;
+            case 'TARIFICATION':
+              actionPrefixes.push('PRICING_');
+              break;
+            case 'SYSTÈME':
+              actionPrefixes.push('SYSTEM_');
+              break;
+            case 'ERREUR':
+              actionPrefixes.push('ERROR_');
+              break;
+            default:
+              // Pour les labels qui ne matchent pas, chercher les actions qui commencent par ce label
+              actionPrefixes.push(`${label}_`);
+              break;
+          }
+        });
+
+        // Construire le filtre OR pour toutes les actions correspondantes
+        if (actionPrefixes.length > 0) {
+          const actionFilters = actionPrefixes.map(prefix => ({
+            action: { startsWith: prefix }
+          }));
+          
+          // Si where.OR existe déjà (recherche globale), combiner avec AND
+          if (where.OR) {
+            where.AND = [
+              { OR: where.OR },
+              { OR: actionFilters }
+            ];
+            delete where.OR;
+          } else {
+            where.OR = actionFilters;
+          }
+        }
+      }
     }
 
     // Tri
