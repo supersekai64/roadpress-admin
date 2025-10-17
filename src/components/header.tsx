@@ -7,15 +7,7 @@ import { useTheme } from 'next-themes';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LogoutButton } from '@/components/logout-button';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { User, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 export function Header() {
   const { resolvedTheme } = useTheme();
@@ -45,24 +37,12 @@ export function Header() {
 
       <div className="flex items-center gap-1">
         <ThemeToggle />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <User className="h-[1.2rem] w-[1.2rem]" />
-              <span className="sr-only">Menu profil</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings/2fa" className="cursor-pointer">
-                <Shield className="mr-2 h-4 w-4" />
-                <span>Sécurité 2FA</span>
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+          <Link href="/dashboard/settings/2fa">
+            <Shield className="h-[1.2rem] w-[1.2rem]" />
+            <span className="sr-only">Sécurité 2FA</span>
+          </Link>
+        </Button>
         <LogoutButton />
       </div>
     </header>
