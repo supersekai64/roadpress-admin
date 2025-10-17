@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       licenseId: license.id,
       clientName: license.clientName,
       status: 'SUCCESS',
-      message: `Logs enregistrés (Emails: ${emailLogsCreated}, SMS: ${smsLogsCreated})`,
+      message: `Logs enregistrés (Emails : ${emailLogsCreated} | SMS : ${smsLogsCreated})`,
       requestData: {
         email_logs_count: emailLogsCreated,
         sms_logs_count: smsLogsCreated,
