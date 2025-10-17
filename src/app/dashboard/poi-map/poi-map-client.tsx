@@ -4,13 +4,19 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Map, { Marker, NavigationControl, FullscreenControl, Popup, Source, Layer } from "react-map-gl";
 import type { MapRef, LayerProps } from "react-map-gl";
-import { MapPin, Users, Eye, Calendar, X, Navigation2, Download, Filter, Flame } from "lucide-react";
+import { MapPin, Users, Eye, Calendar, X, Navigation2, Download, Filter, Flame, Search, ChevronsUpDown, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Skeleton, PageHeaderSkeleton } from "@/components/ui/skeleton";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -23,6 +29,7 @@ import type { BBox, GeoJsonProperties } from "geojson";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import * as XLSX from "xlsx";
+import { cn } from "@/lib/utils";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 interface PoiVisit {
@@ -61,18 +68,63 @@ type PointFeature = GeoJSON.Feature<GeoJSON.Point, GeoJsonProperties & { poi: Po
 
 const MAPBOX_ADMIN_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
+// Mappings pour les labels français
+const SEASON_LABELS: Record<string, string> = {
+  WINTER: 'Hiver',
+  SPRING: 'Printemps',
+  SUMMER: 'Été',
+  FALL: 'Automne',
+};
+
+const PROFILE_LABELS: Record<string, string> = {
+  SOLO: 'Solo',
+  COUPLE: 'Couple',
+  FAMILY: 'Famille',
+  FRIENDS: "Groupe d'amis",
+  ORGANIZED_GROUP: 'Groupe organisé',
+};
+
+const TRAVEL_REASON_LABELS: Record<string, string> = {
+  LEISURE: 'Loisirs',
+  BUSINESS: 'Affaires',
+  FAMILY_VISIT: 'Visite familiale',
+  EVENT: 'Événement',
+  HEALTH: 'Santé',
+  EDUCATION: 'Éducation',
+  OTHER: 'Autre',
+};
+
+const STAY_DURATION_LABELS: Record<string, string> = {
+  DAY_TRIP: 'Excursion à la journée',
+  ONE_NIGHT: '1 nuit',
+  TWO_TO_THREE: '2-3 nuits',
+  FOUR_TO_SEVEN: '4-7 nuits',
+  MORE_THAN_WEEK: "Plus d'une semaine",
+};
+
 export default function PoiMapClient() {
   const [selectedLicense, setSelectedLicense] = useState<string>("all");
   const [selectedPoi, setSelectedPoi] = useState<Poi | null>(null);
+  const [hoveredPoi, setHoveredPoi] = useState<Poi | null>(null);
   const [excludeRoadpress, setExcludeRoadpress] = useState<boolean>(false);
   const [showHeatmap, setShowHeatmap] = useState<boolean>(true); // Par défaut visible
   const [showMarkers, setShowMarkers] = useState<boolean>(false); // Par défaut caché
   
-  // Nouveaux filtres
-  const [selectedSeason, setSelectedSeason] = useState<string>("all");
-  const [selectedProfile, setSelectedProfile] = useState<string>("all");
-  const [selectedTravelReason, setSelectedTravelReason] = useState<string>("all");
+  // Filtres avec sélection multiple
+  const [selectedSeasons, setSelectedSeasons] = useState<string[]>([]);
+  const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
+  const [selectedTravelReasons, setSelectedTravelReasons] = useState<string[]>([]);
   const [selectedStayDuration, setSelectedStayDuration] = useState<string>("all");
+  
+  // États pour les popovers de recherche
+  const [clientSearchOpen, setClientSearchOpen] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState('');
+  const [seasonsSearchOpen, setSeasonsSearchOpen] = useState(false);
+  const [seasonsSearchQuery, setSeasonsSearchQuery] = useState('');
+  const [profilesSearchOpen, setProfilesSearchOpen] = useState(false);
+  const [profilesSearchQuery, setProfilesSearchQuery] = useState('');
+  const [reasonsSearchOpen, setReasonsSearchOpen] = useState(false);
+  const [reasonsSearchQuery, setReasonsSearchQuery] = useState('');
   
   const [viewState, setViewState] = useState({
     latitude: 46.603354,
@@ -116,24 +168,24 @@ export default function PoiMapClient() {
       filtered = filtered.filter(poi => poi.license.id === selectedLicense);
     }
     
-    // Filtrer par saison
-    if (selectedSeason !== "all") {
+    // Filtrer par saisons (sélection multiple)
+    if (selectedSeasons.length > 0) {
       filtered = filtered.filter(poi => 
-        poi.visits?.some(visit => visit.season === selectedSeason)
+        poi.visits?.some(visit => visit.season && selectedSeasons.includes(visit.season))
       );
     }
     
-    // Filtrer par profil visiteur
-    if (selectedProfile !== "all") {
+    // Filtrer par profils visiteur (sélection multiple)
+    if (selectedProfiles.length > 0) {
       filtered = filtered.filter(poi => 
-        poi.visits?.some(visit => visit.visitorProfile === selectedProfile)
+        poi.visits?.some(visit => visit.visitorProfile && selectedProfiles.includes(visit.visitorProfile))
       );
     }
     
-    // Filtrer par raison du voyage
-    if (selectedTravelReason !== "all") {
+    // Filtrer par raison du voyage (sélection multiple)
+    if (selectedTravelReasons.length > 0) {
       filtered = filtered.filter(poi => 
-        poi.visits?.some(visit => visit.travelReason === selectedTravelReason)
+        poi.visits?.some(visit => visit.travelReason && selectedTravelReasons.includes(visit.travelReason))
       );
     }
     
@@ -145,7 +197,7 @@ export default function PoiMapClient() {
     }
     
     return filtered;
-  }, [pois, selectedLicense, excludeRoadpress, selectedSeason, selectedProfile, selectedTravelReason, selectedStayDuration]);
+  }, [pois, selectedLicense, excludeRoadpress, selectedSeasons, selectedProfiles, selectedTravelReasons, selectedStayDuration]);
 
   // Générer les données GeoJSON pour la heatmap
   const heatmapData = useMemo(() => {
@@ -546,77 +598,301 @@ export default function PoiMapClient() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-              {/* Client */}
+              {/* Client avec recherche */}
               <div className="space-y-2">
-                <Label htmlFor="license-filter">Client ({activeClientsCount})</Label>
-                <Select value={selectedLicense} onValueChange={setSelectedLicense}>
-                  <SelectTrigger id="license-filter">
-                    <SelectValue placeholder="Tous les clients" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous</SelectItem>
-                    {licenses.map((license) => (
-                      <SelectItem key={license.id} value={license.id}>
-                        {license.clientName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="license-filter">
+                  Client {selectedLicense !== 'all' && '(1)'}
+                </Label>
+                <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={clientSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      <span className="truncate">
+                        {selectedLicense === 'all'
+                          ? 'Tous les clients'
+                          : licenses.find(l => l.id === selectedLicense)?.clientName || 'Tous les clients'}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <div className="flex items-center border-b px-3 bg-card">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <Input
+                        placeholder="Rechercher un client..."
+                        value={clientSearchQuery}
+                        onChange={(e) => setClientSearchQuery(e.target.value)}
+                        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
+                      />
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto p-1">
+                      <div
+                        className={cn(
+                          'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                          selectedLicense === 'all' && 'bg-accent'
+                        )}
+                        onClick={() => {
+                          setSelectedLicense('all');
+                          setClientSearchOpen(false);
+                          setClientSearchQuery('');
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            'mr-2 h-4 w-4',
+                            selectedLicense === 'all' ? 'opacity-100' : 'opacity-0'
+                          )}
+                        />
+                        Tous les clients
+                      </div>
+                      {licenses
+                        .filter((license) =>
+                          license.clientName.toLowerCase().includes(clientSearchQuery.toLowerCase())
+                        )
+                        .map((license) => {
+                          const isSelected = selectedLicense === license.id;
+                          return (
+                            <div
+                              key={license.id}
+                              className={cn(
+                                'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                                isSelected && 'bg-accent'
+                              )}
+                              onClick={() => {
+                                // Toggle selection: déselectionner si déjà sélectionné
+                                if (isSelected) {
+                                  setSelectedLicense('all');
+                                } else {
+                                  setSelectedLicense(license.id);
+                                }
+                                setClientSearchOpen(false);
+                                setClientSearchQuery('');
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  isSelected ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              {license.clientName}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              {/* Saison */}
+              {/* Saison (sélection multiple) */}
               <div className="space-y-2">
-                <Label htmlFor="season-filter">Saison</Label>
-                <Select value={selectedSeason} onValueChange={setSelectedSeason}>
-                  <SelectTrigger id="season-filter">
-                    <SelectValue placeholder="Toutes les saisons" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes</SelectItem>
-                    <SelectItem value="WINTER">Hiver</SelectItem>
-                    <SelectItem value="SPRING">Printemps</SelectItem>
-                    <SelectItem value="SUMMER">Été</SelectItem>
-                    <SelectItem value="FALL">Automne</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>
+                  Saison {selectedSeasons.length > 0 && `(${selectedSeasons.length})`}
+                </Label>
+                <Popover open={seasonsSearchOpen} onOpenChange={setSeasonsSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={seasonsSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      <span className="truncate">
+                        {selectedSeasons.length === 0
+                          ? 'Toutes les saisons'
+                          : selectedSeasons.length === 1
+                          ? SEASON_LABELS[selectedSeasons[0]]
+                          : `${selectedSeasons.length} sélectionnées`}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <div className="flex items-center border-b px-3 bg-card">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <Input
+                        placeholder="Rechercher une saison..."
+                        value={seasonsSearchQuery}
+                        onChange={(e) => setSeasonsSearchQuery(e.target.value)}
+                        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
+                      />
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto p-1">
+                      {Object.entries(SEASON_LABELS)
+                        .filter(([_, label]) =>
+                          label.toLowerCase().includes(seasonsSearchQuery.toLowerCase())
+                        )
+                        .map(([value, label]) => {
+                          const isSelected = selectedSeasons.includes(value);
+                          return (
+                            <div
+                              key={value}
+                              className={cn(
+                                'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                                isSelected && 'bg-accent'
+                              )}
+                              onClick={() => {
+                                const newSeasons = isSelected
+                                  ? selectedSeasons.filter(s => s !== value)
+                                  : [...selectedSeasons, value];
+                                setSelectedSeasons(newSeasons);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  isSelected ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              {label}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              {/* Profil visiteur */}
+              {/* Profil visiteur (sélection multiple) */}
               <div className="space-y-2">
-                <Label htmlFor="profile-filter">Profil visiteur</Label>
-                <Select value={selectedProfile} onValueChange={setSelectedProfile}>
-                  <SelectTrigger id="profile-filter">
-                    <SelectValue placeholder="Tous les profils" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous</SelectItem>
-                    <SelectItem value="SOLO">Solo</SelectItem>
-                    <SelectItem value="COUPLE">Couple</SelectItem>
-                    <SelectItem value="FAMILY">Famille</SelectItem>
-                    <SelectItem value="FRIENDS">Groupe d&apos;amis</SelectItem>
-                    <SelectItem value="ORGANIZED_GROUP">Groupe organisé</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>
+                  Profil visiteur {selectedProfiles.length > 0 && `(${selectedProfiles.length})`}
+                </Label>
+                <Popover open={profilesSearchOpen} onOpenChange={setProfilesSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={profilesSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      <span className="truncate">
+                        {selectedProfiles.length === 0
+                          ? 'Tous les profils'
+                          : selectedProfiles.length === 1
+                          ? PROFILE_LABELS[selectedProfiles[0]]
+                          : `${selectedProfiles.length} sélectionnés`}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <div className="flex items-center border-b px-3 bg-card">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <Input
+                        placeholder="Rechercher un profil..."
+                        value={profilesSearchQuery}
+                        onChange={(e) => setProfilesSearchQuery(e.target.value)}
+                        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
+                      />
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto p-1">
+                      {Object.entries(PROFILE_LABELS)
+                        .filter(([_, label]) =>
+                          label.toLowerCase().includes(profilesSearchQuery.toLowerCase())
+                        )
+                        .map(([value, label]) => {
+                          const isSelected = selectedProfiles.includes(value);
+                          return (
+                            <div
+                              key={value}
+                              className={cn(
+                                'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                                isSelected && 'bg-accent'
+                              )}
+                              onClick={() => {
+                                const newProfiles = isSelected
+                                  ? selectedProfiles.filter(p => p !== value)
+                                  : [...selectedProfiles, value];
+                                setSelectedProfiles(newProfiles);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  isSelected ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              {label}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              {/* Raison du voyage */}
+              {/* Raison du voyage (sélection multiple) */}
               <div className="space-y-2">
-                <Label htmlFor="reason-filter">Raison du voyage</Label>
-                <Select value={selectedTravelReason} onValueChange={setSelectedTravelReason}>
-                  <SelectTrigger id="reason-filter">
-                    <SelectValue placeholder="Toutes les raisons" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes</SelectItem>
-                    <SelectItem value="LEISURE">Loisirs</SelectItem>
-                    <SelectItem value="BUSINESS">Affaires</SelectItem>
-                    <SelectItem value="FAMILY_VISIT">Visite familiale</SelectItem>
-                    <SelectItem value="EVENT">Événement</SelectItem>
-                    <SelectItem value="HEALTH">Santé</SelectItem>
-                    <SelectItem value="EDUCATION">Éducation</SelectItem>
-                    <SelectItem value="OTHER">Autre</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>
+                  Raison du voyage {selectedTravelReasons.length > 0 && `(${selectedTravelReasons.length})`}
+                </Label>
+                <Popover open={reasonsSearchOpen} onOpenChange={setReasonsSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={reasonsSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      <span className="truncate">
+                        {selectedTravelReasons.length === 0
+                          ? 'Toutes les raisons'
+                          : selectedTravelReasons.length === 1
+                          ? TRAVEL_REASON_LABELS[selectedTravelReasons[0]]
+                          : `${selectedTravelReasons.length} sélectionnées`}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <div className="flex items-center border-b px-3 bg-card">
+                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                      <Input
+                        placeholder="Rechercher une raison..."
+                        value={reasonsSearchQuery}
+                        onChange={(e) => setReasonsSearchQuery(e.target.value)}
+                        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
+                      />
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto p-1">
+                      {Object.entries(TRAVEL_REASON_LABELS)
+                        .filter(([_, label]) =>
+                          label.toLowerCase().includes(reasonsSearchQuery.toLowerCase())
+                        )
+                        .map(([value, label]) => {
+                          const isSelected = selectedTravelReasons.includes(value);
+                          return (
+                            <div
+                              key={value}
+                              className={cn(
+                                'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                                isSelected && 'bg-accent'
+                              )}
+                              onClick={() => {
+                                const newReasons = isSelected
+                                  ? selectedTravelReasons.filter(r => r !== value)
+                                  : [...selectedTravelReasons, value];
+                                setSelectedTravelReasons(newReasons);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  isSelected ? 'opacity-100' : 'opacity-0'
+                                )}
+                              />
+                              {label}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Durée du séjour */}
@@ -632,7 +908,7 @@ export default function PoiMapClient() {
                     <SelectItem value="ONE_NIGHT">1 nuit</SelectItem>
                     <SelectItem value="TWO_TO_THREE">2-3 nuits</SelectItem>
                     <SelectItem value="FOUR_TO_SEVEN">4-7 nuits</SelectItem>
-                    <SelectItem value="MORE_THAN_WEEK">Plus d{`'`}une semaine</SelectItem>
+                    <SelectItem value="MORE_THAN_WEEK">Plus d&apos;une semaine</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -645,9 +921,9 @@ export default function PoiMapClient() {
                   className="w-full"
                   onClick={() => {
                     setSelectedLicense("all");
-                    setSelectedSeason("all");
-                    setSelectedProfile("all");
-                    setSelectedTravelReason("all");
+                    setSelectedSeasons([]);
+                    setSelectedProfiles([]);
+                    setSelectedTravelReasons([]);
                     setSelectedStayDuration("all");
                     setExcludeRoadpress(false);
                   }}
@@ -764,9 +1040,55 @@ export default function PoiMapClient() {
             <NavigationControl position="top-right" />
             <FullscreenControl position="top-right" />
 
+            {/* Tooltip flottant pour le POI survolé */}
+            {hoveredPoi && mapRef.current && (() => {
+              const map = mapRef.current.getMap();
+              const point = map.project([hoveredPoi.longitude, hoveredPoi.latitude]);
+              
+              return (
+                <div 
+                  className="absolute pointer-events-none z-[1000]"
+                  style={{ 
+                    left: `${point.x}px`,
+                    top: `${point.y}px`,
+                    transform: 'translate(-50%, calc(-100% - 16px))',
+                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                  }}
+                >
+                  <div className="relative bg-popover text-popover-foreground px-3 py-2 rounded-md shadow-xl border border-border min-w-max">
+                    <div className="font-semibold text-sm">{hoveredPoi.name}</div>
+                    <div className="text-muted-foreground text-sm">{hoveredPoi.license.clientName}</div>
+                    <div className="text-muted-foreground text-sm">
+                      <span className="font-medium">{hoveredPoi.visitCount}</span> {hoveredPoi.visitCount > 1 ? 'visites' : 'visite'}
+                    </div>
+                    <div className="absolute left-1/2 -translate-x-1/2" style={{ top: 'calc(100% - 1px)' }}>
+                      <div 
+                        className="absolute left-1/2 -translate-x-1/2 w-0 h-0" 
+                        style={{
+                          top: '0px',
+                          borderLeft: '9px solid transparent',
+                          borderRight: '9px solid transparent',
+                          borderTop: '9px solid hsl(var(--border))'
+                        }}
+                      ></div>
+                      <div 
+                        className="relative w-0 h-0"
+                        style={{
+                          top: '-1px',
+                          borderLeft: '8px solid transparent',
+                          borderRight: '8px solid transparent',
+                          borderTop: '8px solid hsl(var(--popover))'
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Stats Overlay */}
             <div 
-              className="absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg px-3 py-2 space-y-2"
+              className="absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-sm border rounded-md shadow-lg px-3 py-2 space-y-2"
               style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
             >
               <div className="flex items-center gap-3">
@@ -911,25 +1233,17 @@ export default function PoiMapClient() {
                   longitude={longitude}
                   onClick={() => setSelectedPoi(poi)}
                 >
-                  <div className="relative group cursor-pointer">
-                    <div className="relative">
-                      <MapPin
-                        className="h-8 w-8 hover:scale-125 transition-transform drop-shadow-lg"
-                        fill={markerColor}
-                        stroke="white"
-                        strokeWidth="1.5"
-                      />
-                    </div>
-                    <div 
-                      className="absolute -top-20 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground px-3 py-2 rounded text-sm opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg border border-border min-w-max z-10"
-                      style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
-                    >
-                      <div className="font-semibold">{poi.name}</div>
-                      <div className="text-muted-foreground">{poi.license.clientName}</div>
-                      <div className="text-muted-foreground">
-                        {poi.visitCount} {poi.visitCount > 1 ? 'visites' : 'visite'}
-                      </div>
-                    </div>
+                  <div 
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredPoi(poi)}
+                    onMouseLeave={() => setHoveredPoi(null)}
+                  >
+                    <MapPin
+                      className="h-8 w-8 hover:scale-125 transition-transform drop-shadow-lg"
+                      fill={markerColor}
+                      stroke="white"
+                      strokeWidth="1.5"
+                    />
                   </div>
                 </Marker>
               );

@@ -51,13 +51,9 @@ model License {
 
   // Relations
   emailStats    EmailStats[]
-  emailStatsMonthly EmailStatsMonthly[]
   smsStats      SmsStats[]
-  smsStatsMonthly SmsStatsMonthly[]
   deeplStats    DeeplStats[]
-  deeplStatsMonthly DeeplStatsMonthly[]
   openaiStats   OpenaiStats[]
-  openaiStatsMonthly OpenaiStatsMonthly[]
   emailLogs     EmailLog[]
   smsLogs       SmsLog[]
   pois          Poi[]
@@ -89,22 +85,6 @@ model EmailStats {
   @@index([licenseId])
   @@index([createdAt])
   @@map("email_stats")
-}
-
-model EmailStatsMonthly {
-  id               String   @id @default(cuid())
-  licenseId        String   @map("license_id")
-  statYear         Int      @map("stat_year")
-  statMonth        Int      @map("stat_month")
-  emailsSent       Int      @default(0) @map("emails_sent")
-  lastUpdate       DateTime @default(now()) @map("last_update")
-  createdAt        DateTime @default(now()) @map("created_at")
-
-  license          License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-
-  @@unique([licenseId, statYear, statMonth])
-  @@index([licenseId])
-  @@map("email_stats_monthly")
 }
 
 model EmailLog {
@@ -140,23 +120,6 @@ model SmsStats {
   @@index([licenseId])
   @@index([createdAt])
   @@map("sms_stats")
-}
-
-model SmsStatsMonthly {
-  id           String   @id @default(cuid())
-  licenseId    String   @map("license_id")
-  statYear     Int      @map("stat_year")
-  statMonth    Int      @map("stat_month")
-  smsSent      Int      @default(0) @map("sms_sent")
-  totalCost    Decimal  @default(0) @map("total_cost") @db.Decimal(10, 2)
-  lastUpdate   DateTime @default(now()) @map("last_update")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  license      License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-
-  @@unique([licenseId, statYear, statMonth])
-  @@index([licenseId])
-  @@map("sms_stats_monthly")
 }
 
 model SmsLog {
@@ -197,23 +160,6 @@ model DeeplStats {
   @@map("deepl_stats")
 }
 
-model DeeplStatsMonthly {
-  id                    String   @id @default(cuid())
-  licenseId             String   @map("license_id")
-  statYear              Int      @map("stat_year")
-  statMonth             Int      @map("stat_month")
-  translationsCount     Int      @default(0) @map("translations_count")
-  charactersTranslated  Int      @default(0) @map("characters_translated")
-  lastUpdate            DateTime @default(now()) @map("last_update")
-  createdAt             DateTime @default(now()) @map("created_at")
-
-  license               License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-
-  @@unique([licenseId, statYear, statMonth])
-  @@index([licenseId])
-  @@map("deepl_stats_monthly")
-}
-
 // =====================================================
 // OPENAI STATISTICS
 // =====================================================
@@ -234,26 +180,6 @@ model OpenaiStats {
   @@index([licenseId])
   @@index([createdAt])
   @@map("openai_stats")
-}
-
-model OpenaiStatsMonthly {
-  id                 String   @id @default(cuid())
-  licenseId          String   @map("license_id")
-  statYear           Int      @map("stat_year")
-  statMonth          Int      @map("stat_month")
-  requestsCount      Int      @default(0) @map("requests_count")
-  promptTokens       Int      @default(0) @map("prompt_tokens")
-  completionTokens   Int      @default(0) @map("completion_tokens")
-  totalTokens        Int      @default(0) @map("total_tokens")
-  totalCost          Decimal  @default(0) @map("total_cost") @db.Decimal(10, 4)
-  lastUpdate         DateTime @default(now()) @map("last_update")
-  createdAt          DateTime @default(now()) @map("created_at")
-
-  license            License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-
-  @@unique([licenseId, statYear, statMonth])
-  @@index([licenseId])
-  @@map("openai_stats_monthly")
 }
 
 // =====================================================

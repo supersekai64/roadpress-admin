@@ -51,7 +51,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# custom
-/roadpress/
-roadpress.zip
-*SMS.html
+# scripts with sensitive data
+scripts/create-admin.ts

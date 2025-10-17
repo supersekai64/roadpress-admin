@@ -1,0 +1,5 @@
+{
+  "hooks": {
+    "beforeMigrate": "node scripts/pre-migrate-backup.js"
+  }
+}

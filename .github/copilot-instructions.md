@@ -1,191 +1,712 @@
-# Instructions Copilot pour Next.js Starter Template
+# 🧠 Instructions Copilot - Roadpress Admin
 
-> **Documentation complète des best practices pour ce template**
+> **Documentation centralisée pour GitHub Copilot**
 > 
-> Ce fichier contient plus de 1300 lignes d'instructions pour garantir la qualité, la performance et la maintenabilité du code. Ces instructions sont automatiquement utilisées par GitHub Copilot.
-
-## 📋 À propos de ce template
-
-Ce template Next.js est conçu pour être un **point de départ professionnel** avec :
-- ✅ Architecture Next.js 15 optimale (App Router, RSC, TypeScript strict)
-- ✅ Stack UI moderne (Tailwind CSS, shadcn/ui, thème dark/light)
-- ✅ Animations professionnelles (GSAP, Lenis)
-- ✅ Performance maximale (Images optimisées, code splitting, bundle analysis)
-- ✅ SEO complet (Metadata, sitemap, robots.txt, JSON-LD)
-- ✅ Monitoring (Vercel Analytics, Speed Insights)
-- ✅ DevX optimale (Scripts utilitaires, conventions strictes)
-
-**Ce template est prêt pour la production** et contient toutes les meilleures pratiques du développement Next.js moderne.
+> Ce fichier contient TOUTE la connaissance du projet. Organisé pour une lecture optimale par l'IA.
 
 ---
 
-## 🖥️ ENVIRONNEMENT
-**Système d'exploitation : WINDOWS**
-- Utiliser PowerShell pour les scripts
-- Faire attention aux chemins Windows (backslash)
-- Eviter les caracteres accentues dans les scripts
+## 🔴 SECTION 1 : RÈGLES CRITIQUES (NE JAMAIS OUBLIER)
 
-## ⚠️ GESTIONNAIRE DE PAQUETS
-**TOUJOURS utiliser `pnpm` sur ce projet, JAMAIS `npm` ou `yarn`**
-- Installation : `pnpm install` ou `pnpm i`
-- Ajouter un package : `pnpm add <package>`
-- Ajouter un dev package : `pnpm add -D <package>`
-- Supprimer un package : `pnpm remove <package>`
-- Exécuter un script : `pnpm run <script>` ou `pnpm <script>`
+### 🤖 Méta-instruction
 
-## 🚨 RÈGLE CRITIQUE - BASE DE DONNÉES (OBLIGATOIRE)
+**TOUJOURS mettre à jour CE FICHIER au lieu de créer des documents séparés.**
 
-### ⚠️ AVANT TOUTE OPÉRATION PRISMA DESTRUCTIVE
+Quand un nouveau pattern/règle/procédure est identifié :
+1. ✅ Mettre à jour ce fichier dans la section appropriée
+2. ❌ NE JAMAIS créer de docs séparés (`DATABASE-MIGRATION-GUIDE.md`, etc.)
+3. ❌ NE JAMAIS dupliquer les instructions
 
-**TOUJOURS faire un backup de la base de données AVANT :**
-- `prisma migrate reset`
-- `prisma migrate dev` (si changements majeurs)
-- `prisma db push` (si suppression de colonnes/tables)
-- Toute commande qui peut supprimer/modifier des données
+**Objectif** : Un seul fichier = une seule source de vérité.
 
-**Commande obligatoire :**
+### ⚠️ Gestionnaire de paquets
+
+**TOUJOURS `pnpm`, JAMAIS `npm` ou `yarn`**
+
 ```bash
-pnpm db:backup
+pnpm install        # Installation
+pnpm add <pkg>      # Ajouter dépendance
+pnpm add -D <pkg>   # Ajouter dev dependency
+pnpm remove <pkg>   # Supprimer
+pnpm <script>       # Exécuter script
 ```
 
-**JAMAIS exécuter ces commandes sans backup préalable :**
-- ❌ `prisma migrate reset` sans backup
-- ❌ `prisma migrate reset --force` sans backup
-- ❌ `prisma db push --accept-data-loss` sans backup
+### 🚨 Base de données Prisma (RÈGLE ABSOLUE)
 
-**Si l'utilisateur demande une migration Prisma :**
-1. ✅ **TOUJOURS** proposer de faire un backup d'abord
-2. ✅ Attendre la confirmation de l'utilisateur
-3. ✅ Exécuter `pnpm db:backup`
-4. ✅ Seulement après, procéder à la migration
+**COMMANDES INTERDITES** (suppriment toutes les données) :
+- ❌ `prisma migrate reset`
+- ❌ `prisma migrate reset --force`
+- ❌ `prisma db push --accept-data-loss`
+- ❌ `prisma migrate dev --force`
 
-**Cette règle est ABSOLUE et NON-NÉGOCIABLE.**
+**BACKUP AUTOMATIQUE ACTIVÉ** 🛡️
 
-## Configuration du projet
-- Next.js avec App Router
-- TypeScript
-- Tailwind CSS
-- shadcn/ui pour les composants
-- GSAP pour les animations
-- Lenis pour le smooth scrolling
-- Gestionnaire de paquets : **pnpm**
-- Build : **Turbopack** (dev) + **Webpack** (production)
+Toutes les commandes Prisma dangereuses créent **automatiquement** un backup :
+- ✅ `pnpm db:push` → Backup auto + push
+- ✅ `pnpm db:migrate` → Backup auto + migration interactive
+- ✅ `pnpm prisma migrate dev` → Backup auto + migration
+- ✅ `pnpm prisma migrate deploy` → Backup auto + déploiement
 
-## Commandes utiles
+**Système de protection** :
+- Backups automatiques dans `backups/dev/` ou `backups/prod/`
+- Conservation des 10 derniers backups (auto-nettoyage)
+- Bloque `migrate reset` même avec backup
+- Permet skip en dev : `SKIP_BACKUP=1 npx prisma db push` (non recommandé)
 
-### Développement
+**PROCÉDURE OBLIGATOIRE pour toute migration** :
+
 ```bash
-pnpm dev:clean # Kill les ports et démarrer proprement
-pnpm dev       # Démarrer normalement (sans kill)
-pnpm build     # Compiler pour la production
-pnpm start     # Démarrer en mode production
-pnpm lint      # Vérifier le code
-pnpm kill      # Tuer tous les processus Node (libérer les ports)
+# 1. BACKUP AUTOMATIQUE (fait automatiquement par les commandes ci-dessous)
+
+# 2. Créer migration SANS appliquer
+npx prisma migrate dev --create-only --name <nom>
+
+# 3. VÉRIFIER le SQL généré
+# Ouvrir prisma/migrations/<timestamp>_<nom>/migration.sql
+# S'assurer qu'il n'y a PAS de DROP/DELETE sur tables importantes
+
+# 4. Appliquer (backup auto avant)
+pnpm prisma migrate deploy
+
+# 5. Régénérer client
+npx prisma generate
 ```
 
-**⚠️ IMPORTANT : Toujours utiliser `pnpm dev:clean` pour lancer/relancer le serveur de dev**
-Cette commande tue proprement tous les processus Node bloquant les ports avant de relancer.
-
-### Installation de packages
+**Restauration si données perdues** :
 ```bash
-pnpm add <package>      # Ajouter une dépendance
-pnpm add -D <package>   # Ajouter une dépendance de dev
-pnpm remove <package>   # Supprimer une dépendance
+pnpm db:restore
 ```
 
-### shadcn/ui
+**Commandes sûres** :
 ```bash
-pnpm dlx shadcn@latest add [component]  # Ajouter un composant
+npx prisma migrate status    # ✅ SAFE (pas de backup)
+npx prisma generate          # ✅ SAFE (pas de backup)
+npx prisma studio            # ✅ SAFE (lecture seule)
+pnpm db:push                 # ✅ SAFE (backup auto)
+pnpm db:migrate              # ✅ SAFE (backup auto)
+npx prisma migrate reset     # ❌ INTERDIT (bloqué par script)
 ```
 
-## Structure des composants
+---
 
-Les composants doivent être placés dans :
-- `src/components/ui/` pour les composants shadcn/ui
-- `src/components/` pour les composants personnalisés
+## � SECTION 2 : CONTEXTE PROJET
 
-## Bonnes pratiques
+### Environnement
+- **OS** : Windows
+- **Shell** : PowerShell
+- **Attention** : Chemins avec backslash, éviter accents dans scripts
 
-### Composants React
-- **Toujours** utiliser `"use client"` pour les composants avec :
-  - Hooks React (useState, useEffect, useRef, etc.)
-  - Animations GSAP
-  - Lenis smooth scrolling
-  - Event listeners (onClick, onChange, etc.)
-  - Context providers (ThemeProvider)
-- Garder les Server Components par défaut quand c'est possible
-- Utiliser TypeScript avec typage strict pour tous les composants
+### Stack technique
+- **Framework** : Next.js 15 (App Router)
+- **Language** : TypeScript (mode strict)
+- **UI** : Tailwind CSS + shadcn/ui
+- **Animations** : GSAP + Lenis
+- **Database** : PostgreSQL + Prisma ORM
+- **Build** : Turbopack (dev) + Webpack (prod)
+- **Package Manager** : pnpm
 
-### Styles et CSS
-- Utiliser la fonction `cn()` de `@/lib/utils` pour combiner les classes CSS
-- Privilégier les classes Tailwind plutôt que le CSS custom
-- Utiliser les variables CSS de shadcn/ui pour les couleurs (--background, --foreground, etc.)
-- Respecter le système de thèmes (light/dark) en utilisant les variables CSS
+### Commandes développement
 
-### Imports et chemins
-- **Toujours** préfixer les imports avec `@/` pour les chemins absolus
-- Structure : `@/components`, `@/lib`, `@/app`, `@/hooks`
-- Ne jamais utiliser de chemins relatifs complexes (`../../..`)
+```bash
+pnpm dev:clean  # ✅ Recommandé : Kill ports + démarrer proprement
+pnpm dev        # Démarrer normalement
+pnpm build      # Build production
+pnpm start      # Start production
+pnpm lint       # Lint code
+pnpm kill       # Kill processus Node
+```
 
-### GSAP
-- Toujours utiliser `"use client"` dans les composants avec GSAP
-- Nettoyer les animations dans le cleanup de useEffect
-- Utiliser `gsap.context()` pour éviter les fuites mémoire
-- Exemple :
-  ```tsx
+### Structure dossiers
+```
+src/
+├── app/             # Pages Next.js (App Router)
+├── components/      # Composants React
+│   └── ui/          # shadcn/ui components
+├── lib/             # Utilitaires
+├── hooks/           # Custom hooks
+└── types/           # Types TypeScript
+
+public/
+└── images/          # Images sources (optimisées au build)
+
+prisma/
+├── schema.prisma    # Schéma database
+└── migrations/      # Migrations SQL
+```
+
+---
+
+## 🔵 SECTION 3 : PATTERNS DE CODE
+
+### TypeScript : Conventions de nommage
+
+```tsx
+// ✅ Fichiers : kebab-case
+// button.tsx, theme-toggle.tsx, optimized-image.tsx
+
+// ✅ Composants : PascalCase
+<ThemeToggle />
+<OptimizedImage />
+
+// ✅ Fonctions/variables : camelCase
+const handleClick = () => {}
+const isLoading = true
+
+// ✅ Fonctions async : suffixe Async
+async function fetchUserDataAsync(id: string) { }
+async function saveUserAsync(user: User) { }
+
+// ✅ Constantes : SCREAMING_SNAKE_CASE
+const API_BASE_URL = 'https://api.example.com'
+const MAX_RETRY_ATTEMPTS = 3
+
+// ✅ Props : readonly + interface
+interface ButtonProps {
+  readonly children: React.ReactNode
+  readonly variant?: 'primary' | 'secondary'
+  readonly onClick?: () => void
+}
+```
+
+### React : Server Components vs Client Components
+
+```tsx
+// ✅ Par défaut : Server Component (RSC)
+export default function Page() {
+  return <main>Contenu statique</main>
+}
+
+// ✅ Client Component : "use client" UNIQUEMENT si :
+// - Hooks (useState, useEffect, useRef)
+// - Animations (GSAP, Lenis)
+// - Event listeners (onClick, onChange)
+// - Context providers
+"use client"
+import { useState } from 'react'
+
+export function Counter() {
+  const [count, setCount] = useState(0)
+  return <button onClick={() => setCount(c => c + 1)}>{count}</button>
+}
+```
+
+### Gestion d{`'`}état : Immutabilité + Loading/Error
+
+```tsx
+// ✅ TOUJOURS : États immutables avec readonly
+interface AppState {
+  readonly users: readonly User[]
+  readonly currentUser: User | null
+  readonly settings: Readonly<{
+    theme: 'light' | 'dark'
+    language: string
+  }>
+}
+
+// ✅ TOUJOURS : Gérer loading + error
+function useUserData(id: string) {
+  const [state, setState] = useState<{
+    readonly data: User | null
+    readonly loading: boolean
+    readonly error: string | null
+  }>({ data: null, loading: true, error: null })
+
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.from(ref.current, { opacity: 0 });
-    });
-    return () => ctx.revert();
-  }, []);
-  ```
+    let cancelled = false
 
-### Lenis (Smooth Scrolling)
-- Initialiser Lenis dans un composant client séparé
-- Toujours détruire l'instance dans le cleanup
-- Utiliser `requestAnimationFrame` pour la boucle RAF
+    async function fetchDataAsync() {
+      try {
+        setState(prev => ({ ...prev, loading: true, error: null }))
+        const userData = await fetchUserDataAsync(id)
+        if (!cancelled) {
+          setState({ data: userData, loading: false, error: null })
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setState({
+            data: null,
+            loading: false,
+            error: error instanceof Error ? error.message : 'Erreur inconnue'
+          })
+        }
+      }
+    }
 
-### Performance et optimisation des bundles
-- Lazy load les composants lourds avec `next/dynamic`
-- Optimiser les images avec `next/image`
-- Éviter les re-renders inutiles avec `React.memo` si nécessaire
-- Utiliser `useMemo` et `useCallback` avec parcimonie
-- **Code splitting** : séparer les gros modules en chunks distincts
-- **Tree shaking** : importer uniquement ce qui est utilisé
-- **Bundle analysis** : surveiller la taille des chunks régulièrement
+    fetchDataAsync()
+    return () => { cancelled = true }
+  }, [id])
+
+  return state
+}
+
+// ✅ TOUJOURS : Try/catch + cleanup useEffect
+async function fetchDataAsync() {
+  try {
+    const response = await fetch('/api/data')
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    return await response.json()
+  } catch (error) {
+    console.error('Erreur:', error)
+    throw error
+  }
+}
+
+useEffect(() => {
+  const interval = setInterval(() => {}, 1000)
+  return () => clearInterval(interval) // Cleanup obligatoire
+}, [])
+```
+
+### Imports : Chemins absolus avec @/
+
+```tsx
+// ✅ Toujours utiliser alias @/
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import type { User } from '@/types/user'
+
+// ❌ Ne jamais utiliser chemins relatifs
+import { Button } from '../../../components/ui/button'
+```
+
+### Styles : Tailwind + cn() + Variables CSS
+
+```tsx
+import { cn } from '@/lib/utils'
+
+// ✅ Combiner classes avec cn()
+<div className={cn(
+  'px-4 py-2 rounded-md',
+  variant === 'primary' && 'bg-primary text-primary-foreground',
+  disabled && 'opacity-50 cursor-not-allowed'
+)} />
+
+// ✅ Variables CSS pour thèmes
+<div className="bg-background text-foreground" />
+```
+
+### Performance : Lazy loading + Tree shaking
+
+```tsx
+// ✅ Lazy load composants lourds (> 50 KB)
+import dynamic from 'next/dynamic'
+
+const HeavyChart = dynamic(() => import('@/components/heavy-chart'), {
+  loading: () => <div>Chargement...</div>,
+  ssr: false
+})
+
+// ✅ Tree shaking : imports sélectifs
+import { debounce } from 'lodash-es'  // ✅ BON
+import { Home, Settings } from 'lucide-react'  // ✅ BON
+
+import _ from 'lodash'  // ❌ MAUVAIS
+import * as Icons from 'lucide-react'  // ❌ MAUVAIS
+```
+
+### Accessibilité : HTML sémantique + ARIA
+
+```tsx
+// ✅ Balises sémantiques
+<main>
+  <section aria-labelledby="products-heading">
+    <h2 id="products-heading">Nos produits</h2>
+  </section>
+</main>
+
+// ✅ Formulaires accessibles
+<form>
+  <label htmlFor="email">Email</label>
+  <input
+    id="email"
+    type="email"
+    aria-describedby="email-error"
+  />
+  {error && <p id="email-error">{error}</p>}
+</form>
+
+// ✅ Boutons accessibles
+<button aria-label="Fermer">
+  <X className="w-4 h-4" />
+</button>
+```
+
+### Texte : Échapper apostrophes et guillemets
+
+```tsx
+// ❌ MAUVAIS
+<p>Il n'y a pas de problème</p>
+
+// ✅ BON - Entités HTML
+<p>Il n&apos;y a pas de problème</p>
+
+// ✅ BON - Template literals (recommandé)
+<p>{`Il n'y a pas de problème`}</p>
+<p>{`C'est un "exemple" de texte`}</p>
+```
+
+---
+
+## 🟣 SECTION 4 : WORKFLOWS (Procédures étape par étape)
+
+### SEO : Créer une nouvelle page
+
+```tsx
+// 1. Créer page.tsx avec Metadata complète
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Titre - Nom du site',
+  description: 'Description 150-160 caractères',
+  keywords: ['mot-clé 1', 'mot-clé 2'],
+  openGraph: {
+    title: 'Titre OG',
+    description: 'Description OG',
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
+  },
+  alternates: { canonical: '/nouvelle-page' },
+}
+
+export default function NouvellePage() {
+  return (
+    <main>
+      <h1>Un seul H1 par page</h1>
+      <section>
+        <h2>Section 1</h2>
+        <p>Minimum 300 mots...</p>
+      </section>
+    </main>
+  )
+}
+
+// 2. Ajouter au sitemap.ts
+// 3. Vérifier robots.ts
+// 4. Ajouter JSON-LD si applicable
+// 5. Créer liens internes
+// 6. Optimiser images avec <OptimizedImage />
+// 7. Tester : pnpm build
+```
+
+### Images : Optimisation
+
+```tsx
+// Utiliser <OptimizedImage /> au lieu de <Image />
+import { OptimizedImage } from '@/components/optimized-image'
+
+<OptimizedImage
+  src="/images/hero.jpg"
+  alt="Description précise et SEO"
+  width={1200}
+  height={600}
+  priority={true}  // Si above-the-fold
+  sizes="(max-width: 768px) 100vw, 50vw"
+/>
+```
+
+---
+
+## 🔴 SECTION 5 : ANTI-PATTERNS (NE JAMAIS FAIRE)
 
 ### TypeScript
-- Typer toutes les props des composants
-- Utiliser les types de Next.js (`Metadata`, `NextPage`, etc.)
-- Éviter `any`, préférer `unknown` si nécessaire
-- Créer des types réutilisables dans `@/types`
+- ❌ Utiliser `any` → Utiliser `unknown` ou typer
+- ❌ Utiliser `React.FC` → Props explicites
+- ❌ Muter props/state → Immutabilité
 
-### Conventions de nommage
-- **Fichiers de composants** : kebab-case (`button.tsx`, `theme-toggle.tsx`, `optimized-image.tsx`)
-- **Fichiers de composants UI shadcn** : kebab-case dans `src/components/ui/`
-- **Dossiers** : kebab-case (`user-profile`, `api-routes`)
-- **Fichiers de configuration** : kebab-case ou standard (`next.config.ts`, `tailwind.config.ts`)
-- **Scripts** : kebab-case (`optimize-images.js`, `dev-clean.ps1`)
-- **Composants React** : PascalCase dans le code (`<ThemeToggle />`, `<OptimizedImage />`)
-- **Fonctions/variables** : camelCase (`useState`, `handleClick`, `isLoading`)
+### React
+- ❌ Oublier cleanup dans useEffect
+- ❌ useEffect pour fetch dans Server Components
+- ❌ Oublier états loading/error
+- ❌ Hooks conditionnels
 
-### Optimisation des images
-- Placer les images sources dans `public/images/`
-- Les images sont automatiquement optimisées en WebP et AVIF lors du build
-- Utiliser le composant `<OptimizedImage />` depuis `@/components/optimized-image`
-- Le cache intelligent évite de retraiter les images non modifiées
-- Voir `docs/IMAGE-OPTIMIZATION.md` pour plus de détails
+### Next.js
+- ❌ `getServerSideProps` ou `getStaticProps` (Pages Router déprécié)
+- ❌ Importer GSAP/Lenis dans Server Components
 
-## 🎯 Priorités de génération de code
+### HTML/Accessibilité
+- ❌ `<div>` quand balise sémantique existe
+- ❌ Oublier `alt` sur images
+- ❌ Oublier `label` sur inputs
+- ❌ Apostrophes/guillemets non échappés en JSX
 
-1. **TypeScript-first** : Toujours utiliser TypeScript en mode strict
-2. **Server-first** : Par défaut, utiliser React Server Components (RSC)
-3. **Performance-first** : Optimiser pour les Core Web Vitals
-4. **Accessibility-first** : Utiliser du HTML sémantique et ARIA
-5. **SEO-first** : Optimiser pour les moteurs de recherche
+### Nommage
+- ❌ Mélanger camelCase/PascalCase/kebab-case
+- ❌ Noms génériques (`data`, `temp`, `test`)
+- ❌ Oublier suffixe `Async` pour fonctions async
 
-## 🔍 SEO - Bonnes pratiques (OBLIGATOIRE)
+---
+
+## ✅ SECTION 6 : CHECKLISTS
+
+### Avant de générer du code
+
+**Code**
+- [ ] ESLint + Prettier sans erreurs
+- [ ] Tous types TypeScript explicites (pas `any`)
+- [ ] Constantes en SCREAMING_SNAKE_CASE
+- [ ] Fonctions async avec suffixe `Async`
+- [ ] Props `readonly`
+
+**État**
+- [ ] États loading + error gérés
+- [ ] Try/catch pour toutes opérations async
+- [ ] Cleanup dans useEffect si nécessaire
+- [ ] Données immutables (readonly, const)
+
+**Accessibilité**
+- [ ] HTML sémantique (main, section, article)
+- [ ] Labels associés aux inputs (`htmlFor`)
+- [ ] ARIA labels où nécessaire
+- [ ] Images avec `alt` descriptifs
+
+**Performance**
+- [ ] Images optimisées (next/image ou OptimizedImage)
+- [ ] Composants lourds lazy-loadés
+- [ ] Pas de re-renders inutiles
+
+**Conventions**
+- [ ] Fichiers en kebab-case
+- [ ] Composants en PascalCase
+- [ ] Fonctions/variables en camelCase
+- [ ] Imports avec alias `@/`
+
+### Checklist SEO (nouvelle page)
+
+- [ ] Fichier page.tsx créé avec structure sémantique
+- [ ] Metadata complète (title, description, OG, Twitter, canonical)
+- [ ] Page ajoutée au sitemap.ts
+- [ ] Robots.txt vérifié (page non bloquée)
+- [ ] Un seul H1 par page
+- [ ] Hiérarchie titres (H1 > H2 > H3)
+- [ ] Alt text sur toutes images
+- [ ] URLs descriptives (kebab-case)
+- [ ] Liens internes depuis/vers autres pages
+- [ ] Données structurées (JSON-LD) si applicable
+- [ ] Contenu minimum 300 mots
+- [ ] Images optimisées (WebP/AVIF)
+- [ ] Mobile responsive
+- [ ] Build réussi sans erreurs
+- [ ] Sitemap.xml accessible
+- [ ] Temps de chargement < 3s
+
+### Checklist bundles
+
+- [ ] Bundle analyzer installé et utilisé
+- [ ] Dynamic imports pour composants > 50 KB
+- [ ] Tree shaking activé (imports sélectifs)
+- [ ] Vendors séparés (next.config.ts)
+- [ ] Alternatives légères préférées
+- [ ] First Load JS < 200 KB
+- [ ] Pages individuelles < 50 KB
+- [ ] Monitoring régulier
+
+---
+
+## 📚 SECTION 7 : RÉFÉRENCE RAPIDE
+
+### Metadata Next.js complète
+
+```tsx
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  metadataBase: new URL('https://site.com'),
+  title: 'Titre - Nom du site',
+  description: 'Description 150-160 caractères',
+  keywords: ['mot-clé 1', 'mot-clé 2'],
+  authors: [{ name: 'Auteur', url: 'https://site.com' }],
+  openGraph: {
+    title: 'Titre pour Facebook/LinkedIn',
+    description: 'Description réseaux sociaux',
+    url: 'https://site.com',
+    siteName: 'Nom du site',
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
+    locale: 'fr_FR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Titre Twitter/X',
+    description: 'Description Twitter/X',
+    images: ['/twitter-image.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: '/',
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '32x32' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+  },
+  manifest: '/manifest.json',
+}
+```
+
+### Sitemap + Robots.txt
+
+```tsx
+// src/app/sitemap.ts
+import type { MetadataRoute } from 'next'
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  return [
+    {
+      url: 'https://site.com',
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 1,
+    },
+    {
+      url: 'https://site.com/about',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+  ]
+}
+
+// src/app/robots.ts
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: '*',
+      allow: '/',
+      disallow: ['/admin/', '/api/'],
+    },
+    sitemap: 'https://site.com/sitemap.xml',
+  }
+}
+```
+
+### JSON-LD (Données structurées)
+
+```tsx
+// Product
+const productJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: 'Nom produit',
+  image: '/product.jpg',
+  description: 'Description',
+  offers: {
+    '@type': 'Offer',
+    priceCurrency: 'EUR',
+    price: 99.99,
+    availability: 'https://schema.org/InStock',
+  },
+}
+
+// Breadcrumb
+const breadcrumbJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://site.com' },
+    { '@type': 'ListItem', position: 2, name: 'Produits', item: 'https://site.com/products' },
+  ],
+}
+
+// Usage
+<script
+  type="application/ld+json"
+  dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+/>
+```
+
+### Exemple composant complet
+
+```tsx
+// Server Component
+import { notFound } from 'next/navigation'
+
+interface PageProps {
+  readonly params: Promise<{ id: string }>
+}
+
+async function getProductAsync(id: string) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+      next: { revalidate: 3600 },
+    })
+    if (!response.ok) {
+      if (response.status === 404) return null
+      throw new Error(`HTTP ${response.status}`)
+    }
+    return await response.json()
+  } catch (error) {
+    console.error('Erreur:', error)
+    throw error
+  }
+}
+
+export default async function ProductPage({ params }: PageProps) {
+  const { id } = await params
+  const product = await getProductAsync(id)
+  if (!product) notFound()
+  
+  return (
+    <main className="container mx-auto px-4 py-8">
+      <h1>{product.name}</h1>
+      <p>{product.description}</p>
+    </main>
+  )
+}
+
+// Client Component
+"use client"
+
+import { useState } from 'react'
+
+interface CounterProps {
+  readonly initialValue?: number
+  readonly max?: number
+}
+
+export function Counter({ initialValue = 0, max = 10 }: CounterProps) {
+  const [count, setCount] = useState(initialValue)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleIncrement = () => {
+    if (count >= max) {
+      setError(`Maximum atteint (${max})`)
+      return
+    }
+    setCount(prev => prev + 1)
+    setError(null)
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-2xl font-bold">{count}</p>
+      <button
+        onClick={handleIncrement}
+        disabled={count >= max}
+        className="px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
+        aria-label="Incrémenter le compteur"
+      >
+        Incrémenter
+      </button>
+      {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+    </div>
+  )
+}
+```
+
+---
+
+## 🔗 Ressources externes
+
+- Next.js 15 : https://nextjs.org/docs
+- React 19 : https://react.dev
+- TypeScript : https://www.typescriptlang.org/docs/
+- WCAG : https://www.w3.org/WAI/WCAG21/quickref/
 
 ### Metadata (TOUJOURS inclure)
 

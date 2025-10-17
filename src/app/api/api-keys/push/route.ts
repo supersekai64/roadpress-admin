@@ -192,12 +192,25 @@ export async function POST() {
       data: { lastPush: new Date() },
     });
 
+    // Déterminer le statut selon le taux de succès
+    let finalStatus: 'SUCCESS' | 'WARNING' | 'ERROR';
+    if (results.failed.length === 0) {
+      // 100% de succès
+      finalStatus = 'SUCCESS';
+    } else if (results.success.length === 0) {
+      // 100% d'échecs
+      finalStatus = 'ERROR';
+    } else {
+      // Au moins 1 échec mais pas 100%
+      finalStatus = 'WARNING';
+    }
+
     // Log du résumé final
     await prisma.debugLog.create({
       data: {
         category: 'PUSH_API',
         action: 'PUSH_API_KEYS_COMPLETE',
-        status: results.failed.length === 0 ? 'SUCCESS' : results.success.length > 0 ? 'WARNING' : 'ERROR',
+        status: finalStatus,
         message: `Push terminé : ${results.success.length} succès, ${results.failed.length} échec(s) sur ${activeLicenses.length} client(s)`,
         responseData: {
           total: activeLicenses.length,

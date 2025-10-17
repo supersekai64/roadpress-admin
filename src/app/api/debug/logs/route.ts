@@ -22,9 +22,27 @@ export async function GET(request: NextRequest) {
       where.category = category;
     }
     
+    // Filtre catégories (multi-sélection)
+    const categoriesParam = searchParams.get('categories');
+    if (categoriesParam) {
+      const categories = categoriesParam.split(',').filter(Boolean);
+      if (categories.length > 0) {
+        where.category = { in: categories };
+      }
+    }
+    
     const status = searchParams.get('status');
     if (status && status !== 'ALL') {
       where.status = status;
+    }
+    
+    // Filtre statuts (multi-sélection)
+    const statusesParam = searchParams.get('statuses');
+    if (statusesParam) {
+      const statuses = statusesParam.split(',').filter(Boolean);
+      if (statuses.length > 0) {
+        where.status = { in: statuses };
+      }
     }
     
     const licenseId = searchParams.get('licenseId');
@@ -68,48 +86,36 @@ export async function GET(request: NextRequest) {
       const labels = labelsParam.split(',').filter(Boolean);
       if (labels.length > 0) {
         // Mapper les labels vers les préfixes d'actions
-        const actionPrefixes: string[] = [];
+        const actionFilters: any[] = [];
         labels.forEach(label => {
           switch (label) {
             case 'API KEY':
-              actionPrefixes.push('PUSH_API_');
+              actionFilters.push({ action: { startsWith: 'PUSH_API_' } });
               break;
             case 'LICENCE':
-              actionPrefixes.push('LICENSE_');
+              actionFilters.push({ action: { startsWith: 'LICENSE_' } });
               break;
             case 'POI':
-              actionPrefixes.push('POI_');
+              actionFilters.push({ action: { startsWith: 'POI_' } });
+              actionFilters.push({ action: { startsWith: 'SYNC_POI' } });
               break;
             case 'SYNCHRONISATION':
-              actionPrefixes.push('SYNC_');
-              break;
-            case 'AUTHENTIFICATION':
-              actionPrefixes.push('AUTH_');
+              actionFilters.push({ action: { startsWith: 'SYNC_' } });
+              actionFilters.push({ action: { startsWith: 'LOGS_UPDATE' } });
+              actionFilters.push({ action: { startsWith: 'STATS_UPDATE' } });
               break;
             case 'USAGE API':
-              actionPrefixes.push('API_USAGE_');
-              break;
-            case 'TARIFICATION':
-              actionPrefixes.push('PRICING_');
-              break;
-            case 'SYSTÈME':
-              actionPrefixes.push('SYSTEM_');
-              break;
-            case 'ERREUR':
-              actionPrefixes.push('ERROR_');
+              actionFilters.push({ action: { startsWith: 'API_USAGE_' } });
               break;
             default:
               // Pour les labels qui ne matchent pas, chercher les actions qui commencent par ce label
-              actionPrefixes.push(`${label}_`);
+              actionFilters.push({ action: { startsWith: `${label}_` } });
               break;
           }
         });
 
         // Construire le filtre OR pour toutes les actions correspondantes
-        if (actionPrefixes.length > 0) {
-          const actionFilters = actionPrefixes.map(prefix => ({
-            action: { startsWith: prefix }
-          }));
+        if (actionFilters.length > 0) {
           
           // Si where.OR existe déjà (recherche globale), combiner avec AND
           if (where.OR) {

@@ -101,7 +101,9 @@ interface Filters {
 
 interface DebugFilters {
   category: string;
+  categories: string[];
   status: string;
+  statuses: string[];
   action: string;
   licenseId: string;
   clientName: string;
@@ -116,12 +118,16 @@ export default function DebugClient() {
   const [stats, setStats] = useState<DebugStats | null>(null);
   const [filters, setFilters] = useState<Filters | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Filtres et pagination
   const [currentFilters, setCurrentFilters] = useState<DebugFilters>({
     category: 'ALL',
+    categories: [],
     status: 'ALL',
+    statuses: [],
     action: '',
     licenseId: '',
     clientName: '',
@@ -141,9 +147,15 @@ export default function DebugClient() {
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   
+  // État pour le filtre catégories avec recherche
+  const [categoriesSearchOpen, setCategoriesSearchOpen] = useState(false);
+  const [categoriesSearchQuery, setCategoriesSearchQuery] = useState('');
+  
+  // État pour le filtre statuts avec recherche
+  const [statusesSearchOpen, setStatusesSearchOpen] = useState(false);
+  
   // État pour le filtre labels avec recherche
   const [labelsSearchOpen, setLabelsSearchOpen] = useState(false);
-  const [labelsSearchQuery, setLabelsSearchQuery] = useState('');
   
   // État pour la dialog de détails
   const [selectedLog, setSelectedLog] = useState<DebugLog | null>(null);
@@ -155,22 +167,28 @@ export default function DebugClient() {
     if (action.startsWith('PUSH_API_')) return 'API KEY';
     if (action.startsWith('LICENSE_')) return 'LICENCE';
     if (action.startsWith('POI_')) return 'POI';
+    if (action.startsWith('SYNC_POI')) return 'POI';
     if (action.startsWith('SYNC_')) return 'SYNCHRONISATION';
-    if (action.startsWith('AUTH_')) return 'AUTHENTIFICATION';
+    if (action.startsWith('LOGS_UPDATE')) return 'SYNCHRONISATION';
+    if (action.startsWith('STATS_UPDATE')) return 'SYNCHRONISATION';
     if (action.startsWith('API_USAGE_')) return 'USAGE API';
-    if (action.startsWith('PRICING_')) return 'TARIFICATION';
-    if (action.startsWith('SYSTEM_')) return 'SYSTÈME';
-    if (action.startsWith('ERROR_')) return 'ERREUR';
     
     // Par défaut, utiliser le premier segment avant le underscore
     const parts = action.split('_');
     return parts[0] || 'AUTRE';
   };
 
-  // Calculer les labels uniques disponibles (basé sur TOUS les logs)
-  const availableLabels = Array.from(
-    new Set(logs.map(log => getActionLabel(log.action)))
-  ).sort();
+  // Liste statique de tous les labels possibles (non basée sur les logs filtrés)
+  const availableLabels = [
+    'API KEY',
+    'LICENCE',
+    'POI',
+    'SYNCHRONISATION',
+    'USAGE API',
+  ].sort();
+
+  // Liste statique de tous les statuts possibles
+  const availableStatuses = ['SUCCESS', 'INFO', 'WARNING', 'ERROR'];
 
   // Chargement des statistiques et filtres disponibles
   const loadStatsAndFilters = useCallback(async () => {
@@ -212,7 +230,13 @@ export default function DebugClient() {
   // Chargement des logs
   const loadLogs = useCallback(async () => {
     try {
-      setLoading(true);
+      // Utiliser refreshing au lieu de loading pour ne pas masquer toute l'interface
+      // sauf pour le tout premier chargement initial
+      if (initialLoadDone) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
 
       const params = new URLSearchParams({
@@ -229,6 +253,12 @@ export default function DebugClient() {
             params.append(key, value.toISOString());
           }
         } else if (key === 'labels' && Array.isArray(value) && value.length > 0) {
+          params.append(key, value.join(','));
+        } else if (key === 'categories' && Array.isArray(value) && value.length > 0) {
+          // Envoyer les catégories en tant que paramètre séparé par virgule
+          params.append(key, value.join(','));
+        } else if (key === 'statuses' && Array.isArray(value) && value.length > 0) {
+          // Envoyer les statuts en tant que paramètre séparé par virgule
           params.append(key, value.join(','));
         } else if (typeof value === 'string' && value.trim()) {
           params.append(key, value);
@@ -270,8 +300,10 @@ export default function DebugClient() {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      setInitialLoadDone(true);
     }
-  }, [currentPage, itemsPerPage, sortField, sortDirection, currentFilters]);
+  }, [currentPage, itemsPerPage, sortField, sortDirection, currentFilters, initialLoadDone]);
 
   // Chargement initial
   useEffect(() => {
@@ -288,7 +320,9 @@ export default function DebugClient() {
     sortField, 
     sortDirection,
     currentFilters.category,
+    currentFilters.categories.join(','),
     currentFilters.status,
+    currentFilters.statuses.join(','),
     currentFilters.action,
     currentFilters.licenseId,
     currentFilters.clientName,
@@ -407,7 +441,9 @@ export default function DebugClient() {
   const clearFilters = () => {
     setCurrentFilters({
       category: 'ALL',
+      categories: [],
       status: 'ALL',
+      statuses: [],
       action: '',
       licenseId: '',
       clientName: '',
@@ -568,9 +604,8 @@ export default function DebugClient() {
             {stats && stats.recentActivity.averageResponseTime > 0 && (
               <div className="flex items-center gap-1.5 text-sm">
                 <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">Temps moyen :</span>
-                <span className="font-medium">{formatDuration(stats.recentActivity.averageResponseTime)}</span>
-                <span className="text-xs text-muted-foreground">(aujourd{`'`}hui)</span>
+                <span className="text-muted-foreground text-xs">Temps de réponse moy. (jour) :</span>
+                <span className="font-medium text-xs">{formatDuration(stats.recentActivity.averageResponseTime)}</span>
               </div>
             )}
           </div>
@@ -580,9 +615,9 @@ export default function DebugClient() {
           <Button
             variant="outline"
             onClick={loadLogs}
-            disabled={loading}
+            disabled={loading || refreshing}
           >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4", (loading || refreshing) && "animate-spin")} />
             Actualiser
           </Button>
           <Button 
@@ -645,7 +680,7 @@ export default function DebugClient() {
 
               {/* Filtres sur la même ligne */}
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-                {/* Catégorie */}
+                {/* Catégorie (sélection simple) */}
                 <div className="space-y-2">
                   <Label htmlFor="category">Catégorie</Label>
                   <Select
@@ -688,21 +723,8 @@ export default function DebugClient() {
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                      <div className="flex items-center border-b px-3 bg-card">
-                        <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                        <Input
-                          placeholder="Rechercher un label..."
-                          value={labelsSearchQuery}
-                          onChange={(e) => setLabelsSearchQuery(e.target.value)}
-                          className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
-                        />
-                      </div>
                       <div className="max-h-[300px] overflow-y-auto p-1">
-                        {availableLabels
-                          .filter((label) =>
-                            label.toLowerCase().includes(labelsSearchQuery.toLowerCase())
-                          )
-                          .map((label) => {
+                        {availableLabels.map((label) => {
                             const isSelected = currentFilters.labels.includes(label);
                             return (
                               <div
@@ -733,25 +755,60 @@ export default function DebugClient() {
                   </Popover>
                 </div>
 
-                {/* Statut */}
+                {/* Statut (sélection multiple) */}
                 <div className="space-y-2">
-                  <Label htmlFor="status">Statut</Label>
-                  <Select
-                    value={currentFilters.status}
-                    onValueChange={(value) => updateFilter('status', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tous les statuts" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">Tous</SelectItem>
-                      {filters?.statuses.filter((status) => status !== 'ALL').map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>
+                    Statut {currentFilters.statuses.length > 0 && `(${currentFilters.statuses.length})`}
+                  </Label>
+                  <Popover open={statusesSearchOpen} onOpenChange={setStatusesSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={statusesSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        <span className="truncate">
+                          {currentFilters.statuses.length === 0
+                            ? 'Tous les statuts'
+                            : currentFilters.statuses.length === 1
+                            ? currentFilters.statuses[0]
+                            : `${currentFilters.statuses.length} sélectionnés`}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                      <div className="max-h-[300px] overflow-y-auto p-1">
+                        {availableStatuses.map((status) => {
+                            const isSelected = currentFilters.statuses.includes(status);
+                            return (
+                              <div
+                                key={status}
+                                className={cn(
+                                  'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                                  isSelected && 'bg-accent'
+                                )}
+                                onClick={() => {
+                                  const newStatuses = isSelected
+                                    ? currentFilters.statuses.filter(s => s !== status)
+                                    : [...currentFilters.statuses, status];
+                                  updateFilter('statuses', newStatuses);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    isSelected ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {status}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* Client */}
@@ -901,7 +958,7 @@ export default function DebugClient() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Logs de debug ({totalCount.toLocaleString()})</span>
-                {loading && (
+                {refreshing && (
                   <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
               </CardTitle>
@@ -963,8 +1020,8 @@ export default function DebugClient() {
                   </TableHeader>
                   <TableBody>
                     {logs.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="h-32 text-center">
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={8} className="h-32 pt-12 text-center">
                           <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                             <Activity className="h-8 w-8" />
                             <p>Aucun log de debug pour le moment</p>
@@ -989,11 +1046,6 @@ export default function DebugClient() {
                           </TableCell>
                           <TableCell className="font-medium">
                             {log.action}
-                            {log.method && (
-                              <span className="text-muted-foreground ml-1">
-                                [{log.method}]
-                              </span>
-                            )}
                           </TableCell>
                           <TableCell>
                             {log.clientName || log.license?.clientName || '-'}
@@ -1072,7 +1124,7 @@ export default function DebugClient() {
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1 || loading || totalCount === 0 || totalPages <= 1}
+                    disabled={currentPage === 1 || loading || refreshing || totalCount === 0 || totalPages <= 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -1081,7 +1133,7 @@ export default function DebugClient() {
                     variant="outline"
                     size="sm"
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage >= totalPages || loading || totalCount === 0 || totalPages <= 1}
+                    disabled={currentPage >= totalPages || loading || refreshing || totalCount === 0 || totalPages <= 1}
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
