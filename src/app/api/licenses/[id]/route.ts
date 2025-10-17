@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth.server';
+import { DebugLogger } from '@/lib/debug-logger';
 
 const licenseSchema = z.object({
   clientName: z.string().min(1, 'Le nom du client est requis'),
@@ -120,9 +121,56 @@ export async function PUT(
       },
     });
 
+    // LOG : Modification de licence réussie
+    await DebugLogger.log({
+      category: 'LICENSE',
+      action: 'UPDATE_LICENSE',
+      method: 'PUT',
+      endpoint: `/api/licenses/${id}`,
+      licenseId: license.id,
+      clientName: license.clientName,
+      status: 'SUCCESS',
+      message: `Licence modifiée avec succès pour ${license.clientName}`,
+      requestData: {
+        previousData: {
+          clientName: existingLicense.clientName,
+          startDate: existingLicense.startDate,
+          endDate: existingLicense.endDate,
+          status: existingLicense.status,
+          siteUrl: existingLicense.siteUrl,
+          isAssociated: existingLicense.isAssociated,
+        },
+        newData: {
+          clientName: validatedData.clientName,
+          startDate: validatedData.startDate,
+          endDate: validatedData.endDate,
+          status,
+          siteUrl: validatedData.siteUrl,
+          isAssociated: validatedData.isAssociated,
+        },
+      },
+      responseData: {
+        licenseId: license.id,
+        licenseKey: license.licenseKey,
+        status: license.status,
+        clientName: license.clientName,
+      },
+    });
+
     return NextResponse.json(license);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      // LOG : Erreur de validation
+      await DebugLogger.log({
+        category: 'LICENSE',
+        action: 'UPDATE_LICENSE',
+        method: 'PUT',
+        endpoint: `/api/licenses/${(await params).id}`,
+        status: 'ERROR',
+        message: 'Données invalides pour la modification de licence',
+        errorDetails: JSON.stringify(error.issues),
+      });
+
       return NextResponse.json(
         { error: 'Données invalides', details: error.issues },
         { status: 400 }
@@ -130,6 +178,18 @@ export async function PUT(
     }
 
     console.error('Erreur PUT /api/licenses/[id]:', error);
+
+    // LOG : Erreur lors de la modification
+    await DebugLogger.log({
+      category: 'LICENSE',
+      action: 'UPDATE_LICENSE',
+      method: 'PUT',
+      endpoint: `/api/licenses/${(await params).id}`,
+      status: 'ERROR',
+      message: 'Erreur lors de la modification de la licence',
+      errorDetails: error instanceof Error ? error.message : String(error),
+    });
+
     return NextResponse.json(
       { error: 'Erreur lors de la modification de la licence' },
       { status: 500 }
@@ -167,12 +227,48 @@ export async function DELETE(
       where: { id },
     });
 
+    // LOG : Suppression de licence réussie
+    await DebugLogger.log({
+      category: 'LICENSE',
+      action: 'DELETE_LICENSE',
+      method: 'DELETE',
+      endpoint: `/api/licenses/${id}`,
+      licenseId: existingLicense.id,
+      clientName: existingLicense.clientName,
+      status: 'SUCCESS',
+      message: `Licence supprimée avec succès pour ${existingLicense.clientName}`,
+      requestData: {
+        deletedLicense: {
+          licenseId: existingLicense.id,
+          licenseKey: existingLicense.licenseKey,
+          clientName: existingLicense.clientName,
+          status: existingLicense.status,
+          startDate: existingLicense.startDate,
+          endDate: existingLicense.endDate,
+          siteUrl: existingLicense.siteUrl,
+          isAssociated: existingLicense.isAssociated,
+        },
+      },
+    });
+
     return NextResponse.json(
       { message: 'Licence supprimée avec succès' },
       { status: 200 }
     );
   } catch (error) {
     console.error('Erreur DELETE /api/licenses/[id]:', error);
+
+    // LOG : Erreur lors de la suppression
+    await DebugLogger.log({
+      category: 'LICENSE',
+      action: 'DELETE_LICENSE',
+      method: 'DELETE',
+      endpoint: `/api/licenses/${(await params).id}`,
+      status: 'ERROR',
+      message: 'Erreur lors de la suppression de la licence',
+      errorDetails: error instanceof Error ? error.message : String(error),
+    });
+
     return NextResponse.json(
       { error: 'Erreur lors de la suppression de la licence' },
       { status: 500 }

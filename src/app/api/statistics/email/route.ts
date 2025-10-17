@@ -55,9 +55,10 @@ export async function GET(request: NextRequest) {
     // Remplir tous les jours entre startDate et endDate (même ceux sans données)
     const allDays: Record<string, { createdAt: Date; emailsSent: number }> = {};
     const currentDate = new Date(startDate);
-    const end = new Date(endDate);
+    // Utiliser endDate au lieu de end pour inclure le dernier jour sélectionné
+    const endForLoop = new Date(endDate);
     
-    while (currentDate <= end) {
+    while (currentDate <= endForLoop) {
       const dayKey = currentDate.toISOString().split('T')[0];
       allDays[dayKey] = groupedByDay[dayKey] || { createdAt: new Date(dayKey), emailsSent: 0 };
       currentDate.setDate(currentDate.getDate() + 1);

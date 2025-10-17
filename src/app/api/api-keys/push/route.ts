@@ -28,6 +28,17 @@ export async function POST() {
     });
 
     if (activeKeys.length === 0) {
+      // Log de l'erreur : aucune clé active
+      await prisma.debugLog.create({
+        data: {
+          category: 'PUSH_API',
+          action: 'PUSH_API_KEYS',
+          status: 'ERROR',
+          message: 'Tentative de distribution échouée : Aucune clé API active',
+          errorDetails: 'Il faut au moins une clé API active pour distribuer aux clients',
+        },
+      });
+
       return NextResponse.json(
         { error: 'Aucune clé API active à distribuer' },
         { status: 400 }
@@ -45,6 +56,21 @@ export async function POST() {
     });
 
     if (activeLicenses.length === 0) {
+      // Log de l'erreur : aucune licence active
+      await prisma.debugLog.create({
+        data: {
+          category: 'PUSH_API',
+          action: 'PUSH_API_KEYS',
+          status: 'ERROR',
+          message: 'Aucun site client trouvé pour distribuer les clés API',
+          errorDetails: 'Aucune licence active avec un site associé. Créez d\'abord une licence et associez-la à un site WordPress.',
+          requestData: {
+            activeKeysCount: activeKeys.length,
+            activeLicensesCount: 0,
+          },
+        },
+      });
+
       return NextResponse.json(
         { error: 'Aucun site client actif trouvé' },
         { status: 400 }
@@ -55,7 +81,7 @@ export async function POST() {
     await prisma.debugLog.create({
       data: {
         category: 'PUSH_API',
-        action: 'PUSH_API_KEYS_START',
+        action: 'PUSH_API_KEYS',
         status: 'INFO',
         message: `Démarrage du push des clés API vers ${activeLicenses.length} client(s)`,
         requestData: {
@@ -108,7 +134,7 @@ export async function POST() {
           await prisma.debugLog.create({
             data: {
               category: 'PUSH_API',
-              action: 'PUSH_API_KEYS_SUCCESS',
+              action: 'PUSH_API_KEYS',
               method: 'POST',
               endpoint: webhookUrl,
               licenseId: license.id,
@@ -137,7 +163,7 @@ export async function POST() {
           await prisma.debugLog.create({
             data: {
               category: 'PUSH_API',
-              action: 'PUSH_API_KEYS_FAILED',
+              action: 'PUSH_API_KEYS',
               method: 'POST',
               endpoint: webhookUrl,
               licenseId: license.id,
@@ -166,7 +192,7 @@ export async function POST() {
         await prisma.debugLog.create({
           data: {
             category: 'PUSH_API',
-            action: 'PUSH_API_KEYS_ERROR',
+            action: 'PUSH_API_KEYS',
             method: 'POST',
             endpoint: license.siteUrl ? `${license.siteUrl}/wp-json/roadpress/v1/update_api_keys` : 'URL manquante',
             licenseId: license.id,
@@ -209,7 +235,7 @@ export async function POST() {
     await prisma.debugLog.create({
       data: {
         category: 'PUSH_API',
-        action: 'PUSH_API_KEYS_COMPLETE',
+        action: 'PUSH_API_KEYS',
         status: finalStatus,
         message: `Push terminé : ${results.success.length} succès, ${results.failed.length} échec(s) sur ${activeLicenses.length} client(s)`,
         responseData: {
@@ -230,6 +256,22 @@ export async function POST() {
       details: results,
     });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+    
+    // Log de l'erreur serveur
+    await prisma.debugLog.create({
+      data: {
+        category: 'PUSH_API',
+        action: 'PUSH_API_KEYS',
+        status: 'ERROR',
+        message: 'Erreur serveur lors de la distribution des clés API',
+        errorDetails: errorMessage,
+      },
+    }).catch(err => {
+      // Si même le log échoue, au moins log dans la console
+      console.error('Impossible de créer le log de debug:', err);
+    });
+
     console.error('Erreur push keys:', error);
     return NextResponse.json(
       { error: 'Erreur serveur lors de la distribution des clés' },

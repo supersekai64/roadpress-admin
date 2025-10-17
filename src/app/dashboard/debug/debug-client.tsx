@@ -113,6 +113,53 @@ interface DebugFilters {
   labels: string[];
 }
 
+// Composant helper pour les sélecteurs de date avec fermeture automatique
+interface DatePickerFieldProps {
+  readonly label: string;
+  readonly value: Date | undefined;
+  readonly onChange: (date: Date | undefined) => void;
+}
+
+function DatePickerField({ label, value, onChange }: DatePickerFieldProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              'w-full justify-start text-left font-normal',
+              !value && 'text-muted-foreground'
+            )}
+          >
+            <Calendar className="mr-2 h-4 w-4" />
+            {value ? (
+              format(value, 'dd MMM yyyy', { locale: fr })
+            ) : (
+              <span>Sélectionner</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <CalendarComponent
+            mode="single"
+            selected={value}
+            onSelect={(date) => {
+              onChange(date);
+              setIsOpen(false);
+            }}
+            initialFocus
+            locale={fr}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 export default function DebugClient() {
   const [logs, setLogs] = useState<DebugLog[]>([]);
   const [stats, setStats] = useState<DebugStats | null>(null);
@@ -876,68 +923,18 @@ export default function DebugClient() {
                 </div>
 
                 {/* Date de début */}
-                <div className="space-y-2">
-                  <Label>Date de début</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !currentFilters.dateFrom && 'text-muted-foreground'
-                        )}
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {currentFilters.dateFrom ? (
-                          format(currentFilters.dateFrom, 'dd MMM yyyy', { locale: fr })
-                        ) : (
-                          <span>Sélectionner</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={currentFilters.dateFrom}
-                        onSelect={(date) => updateFilter('dateFrom', date)}
-                        initialFocus
-                        locale={fr}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <DatePickerField
+                  label="Date de début"
+                  value={currentFilters.dateFrom}
+                  onChange={(date) => updateFilter('dateFrom', date)}
+                />
 
                 {/* Date de fin */}
-                <div className="space-y-2">
-                  <Label>Date de fin</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !currentFilters.dateTo && 'text-muted-foreground'
-                        )}
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {currentFilters.dateTo ? (
-                          format(currentFilters.dateTo, 'dd MMM yyyy', { locale: fr })
-                        ) : (
-                          <span>Sélectionner</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={currentFilters.dateTo}
-                        onSelect={(date) => updateFilter('dateTo', date)}
-                        initialFocus
-                        locale={fr}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <DatePickerField
+                  label="Date de fin"
+                  value={currentFilters.dateTo}
+                  onChange={(date) => updateFilter('dateTo', date)}
+                />
 
                 {/* Bouton Effacer les filtres */}
                 <div className="space-y-2 flex flex-col justify-end">

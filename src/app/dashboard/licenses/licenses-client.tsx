@@ -12,7 +12,7 @@ import {
 } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton, PageHeaderSkeleton, TableSkeleton, StatCardSkeleton } from '@/components/ui/skeleton';
@@ -85,6 +85,7 @@ export default function LicensesPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedLicense, setSelectedLicense] = useState<License | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -137,15 +138,55 @@ export default function LicensesPage() {
     },
   });
 
+  // Fonction pour copier la clé de licence
+  const copyLicenseKey = async (licenseKey: string) => {
+    try {
+      await navigator.clipboard.writeText(licenseKey);
+      setCopiedKey(licenseKey);
+      toast({
+        title: 'Copié !',
+        description: 'La clé de licence a été copiée dans le presse-papier.',
+      });
+      // Réinitialiser après 2 secondes
+      setTimeout(() => setCopiedKey(null), 2000);
+    } catch (error) {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de copier la clé de licence.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const columns: ColumnDef<License>[] = [
     {
       accessorKey: 'licenseKey',
       header: 'Clé de licence',
-      cell: ({ row }) => (
-        <code className="text-xs bg-muted px-2 py-1 rounded">
-          {row.getValue('licenseKey')}
-        </code>
-      ),
+      cell: ({ row }) => {
+        const licenseKey = row.getValue('licenseKey') as string;
+        const isCopied = copiedKey === licenseKey;
+        
+        return (
+          <div className="flex items-center gap-2">
+            <code className="text-xs bg-muted px-2 py-1 rounded">
+              {licenseKey}
+            </code>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => copyLicenseKey(licenseKey)}
+              title="Copier la clé de licence"
+            >
+              {isCopied ? (
+                <Check className="h-3 w-3 text-green-600" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
+            </Button>
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'clientName',

@@ -40,7 +40,6 @@ const formSchema = z.object({
   clientName: z.string().min(1, 'Le nom du client est requis'),
   startDate: z.date({ message: 'La date de début est requise' }),
   endDate: z.date({ message: 'La date de fin est requise' }),
-  siteUrl: z.string().url('URL invalide').optional().or(z.literal('')),
 }).refine((data) => data.endDate > data.startDate, {
   message: 'La date de fin doit être après la date de début',
   path: ['endDate'],
@@ -62,7 +61,6 @@ export function CreateLicenseDialog({ open, onOpenChange }: CreateLicenseDialogP
     resolver: zodResolver(formSchema),
     defaultValues: {
       clientName: '',
-      siteUrl: '',
     },
   });
 
@@ -77,7 +75,6 @@ export function CreateLicenseDialog({ open, onOpenChange }: CreateLicenseDialogP
           clientName: values.clientName,
           startDate: values.startDate.toISOString(),
           endDate: values.endDate.toISOString(),
-          siteUrl: values.siteUrl || null,
         }),
       });
 
@@ -121,7 +118,8 @@ export function CreateLicenseDialog({ open, onOpenChange }: CreateLicenseDialogP
           <DialogTitle>Créer une nouvelle licence</DialogTitle>
           <DialogDescription>
             Remplissez les informations pour créer une nouvelle licence. La clé
-            sera générée automatiquement.
+            sera générée automatiquement et le site sera enregistré lors de
+            l{`'`}activation par le client.
           </DialogDescription>
         </DialogHeader>
 
@@ -148,108 +146,101 @@ export function CreateLicenseDialog({ open, onOpenChange }: CreateLicenseDialogP
               <FormField
                 control={form.control}
                 name="startDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date de début</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              'w-full pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, 'dd MMM yyyy', { locale: fr })
-                            ) : (
-                              <span>Sélectionner</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date(new Date().setHours(0, 0, 0, 0))
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const [isOpen, setIsOpen] = useState(false);
+                  
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Date de début</FormLabel>
+                      <Popover open={isOpen} onOpenChange={setIsOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, 'dd MMM yyyy', { locale: fr })
+                              ) : (
+                                <span>Sélectionner</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => {
+                              field.onChange(date);
+                              setIsOpen(false);
+                            }}
+                            disabled={(date) =>
+                              date < new Date(new Date().setHours(0, 0, 0, 0))
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="endDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date de fin</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              'w-full pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, 'dd MMM yyyy', { locale: fr })
-                            ) : (
-                              <span>Sélectionner</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date(new Date().setHours(0, 0, 0, 0))
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const [isOpen, setIsOpen] = useState(false);
+                  
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Date de fin</FormLabel>
+                      <Popover open={isOpen} onOpenChange={setIsOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, 'dd MMM yyyy', { locale: fr })
+                              ) : (
+                                <span>Sélectionner</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => {
+                              field.onChange(date);
+                              setIsOpen(false);
+                            }}
+                            disabled={(date) =>
+                              date < new Date(new Date().setHours(0, 0, 0, 0))
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
-
-            <FormField
-              control={form.control}
-              name="siteUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Site web</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://exemple.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    URL du site où la licence sera utilisée
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <DialogFooter>
               <Button

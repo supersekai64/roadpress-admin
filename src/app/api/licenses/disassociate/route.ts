@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { DebugLogger } from '@/lib/debug-logger';
 
 /**
  * Endpoint pour désassocier une licence d'un site
@@ -30,12 +31,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Désassocier la licence
-    await prisma.license.update({
+    const updatedLicense = await prisma.license.update({
       where: { id: license.id },
       data: {
         siteUrl: null,
         isAssociated: false,
         lastUpdate: new Date(),
+      },
+    });
+
+    // LOG : Désassociation de licence réussie
+    await DebugLogger.log({
+      category: 'LICENSE',
+      action: 'DISASSOCIATE_LICENSE',
+      method: 'POST',
+      endpoint: '/api/licenses/disassociate',
+      licenseId: license.id,
+      clientName: license.clientName,
+      status: 'SUCCESS',
+      message: `Licence désassociée avec succès (ancienne URL: ${license.siteUrl || 'aucune'})`,
+      requestData: {
+        license_key,
+        previousUrl: license.siteUrl,
+        previousAssociation: license.isAssociated,
+      },
+      responseData: {
+        licenseId: updatedLicense.id,
+        clientName: updatedLicense.clientName,
+        siteUrl: updatedLicense.siteUrl,
+        isAssociated: updatedLicense.isAssociated,
       },
     });
 
@@ -45,6 +69,18 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Erreur désassociation licence:', error);
+
+    // LOG : Erreur lors de la désassociation
+    await DebugLogger.log({
+      category: 'LICENSE',
+      action: 'DISASSOCIATE_LICENSE',
+      method: 'POST',
+      endpoint: '/api/licenses/disassociate',
+      status: 'ERROR',
+      message: 'Erreur lors de la désassociation de la licence',
+      errorDetails: error instanceof Error ? error.message : String(error),
+    });
+
     return NextResponse.json(
       { success: false, message: 'Erreur serveur' },
       { status: 500 }
