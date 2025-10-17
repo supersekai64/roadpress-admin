@@ -13,11 +13,11 @@ export async function GET(request: Request) {
       );
     }
 
-    // Parser les IDs des POIs
+    // Parser les IDs des POI
     const poiIds = poiIdsParam.split(',').filter(Boolean);
 
-    console.log('[POI Export] Recherche de visites pour', poiIds.length, 'POIs');
-    console.log('[POI Export] IDs des POIs:', poiIds);
+    console.log('[POI Export] Recherche de visites pour', poiIds.length, 'POI');
+    console.log('[POI Export] IDs des POI :', poiIds);
 
     if (!poiIds.length) {
       return NextResponse.json(
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // Récupérer toutes les visites pour ces POIs
+    // Récupérer toutes les visites pour ces POI
     const visits = await prisma.poiVisit.findMany({
       where: {
         poiId: {

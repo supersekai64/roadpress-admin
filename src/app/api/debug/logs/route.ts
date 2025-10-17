@@ -80,57 +80,6 @@ export async function GET(request: NextRequest) {
       where.timestamp = { ...where.timestamp, lte: new Date(dateTo) };
     }
 
-    // Filtrage par labels
-    const labelsParam = searchParams.get('labels');
-    if (labelsParam) {
-      const labels = labelsParam.split(',').filter(Boolean);
-      if (labels.length > 0) {
-        // Mapper les labels vers les préfixes d'actions
-        const actionFilters: any[] = [];
-        labels.forEach(label => {
-          switch (label) {
-            case 'API KEY':
-              actionFilters.push({ action: { startsWith: 'PUSH_API_' } });
-              break;
-            case 'LICENCE':
-              actionFilters.push({ action: { startsWith: 'LICENSE_' } });
-              break;
-            case 'POI':
-              actionFilters.push({ action: { startsWith: 'POI_' } });
-              actionFilters.push({ action: { startsWith: 'SYNC_POI' } });
-              break;
-            case 'SYNCHRONISATION':
-              actionFilters.push({ action: { startsWith: 'SYNC_' } });
-              actionFilters.push({ action: { startsWith: 'LOGS_UPDATE' } });
-              actionFilters.push({ action: { startsWith: 'STATS_UPDATE' } });
-              break;
-            case 'USAGE API':
-              actionFilters.push({ action: { startsWith: 'API_USAGE_' } });
-              break;
-            default:
-              // Pour les labels qui ne matchent pas, chercher les actions qui commencent par ce label
-              actionFilters.push({ action: { startsWith: `${label}_` } });
-              break;
-          }
-        });
-
-        // Construire le filtre OR pour toutes les actions correspondantes
-        if (actionFilters.length > 0) {
-          
-          // Si where.OR existe déjà (recherche globale), combiner avec AND
-          if (where.OR) {
-            where.AND = [
-              { OR: where.OR },
-              { OR: actionFilters }
-            ];
-            delete where.OR;
-          } else {
-            where.OR = actionFilters;
-          }
-        }
-      }
-    }
-
     // Tri
     const sortField = searchParams.get('sortField') || 'timestamp';
     const sortDirection = searchParams.get('sortDirection') || 'desc';

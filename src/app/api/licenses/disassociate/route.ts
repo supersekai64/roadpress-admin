@@ -8,6 +8,8 @@ import { DebugLogger } from '@/lib/debug-logger';
  * Body: { license_key }
  */
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const body = await request.json();
     const { license_key } = body;
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
         siteUrl: updatedLicense.siteUrl,
         isAssociated: updatedLicense.isAssociated,
       },
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json({
@@ -81,6 +84,7 @@ export async function POST(request: NextRequest) {
       label: 'LICENCE',
       message: 'Erreur lors de la désassociation de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json(

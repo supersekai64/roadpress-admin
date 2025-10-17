@@ -20,6 +20,8 @@ import { checkRateLimit, RateLimitPresets, getClientIdentifier } from '@/lib/rat
  * Vérifier l'état d'une licence sans l'activer
  */
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     // RATE LIMITING : 30 req/min par IP
     const clientId = getClientIdentifier(request);
@@ -42,6 +44,7 @@ export async function GET(request: NextRequest) {
           resetIn: `${resetInSeconds}s`,
         },
         errorDetails: `Trop de requêtes (${rateLimitResult.limit}/min)`,
+        duration: Date.now() - startTime,
       });
       
       return NextResponse.json(
@@ -84,6 +87,7 @@ export async function GET(request: NextRequest) {
         message: 'Consultation d\'une clé invalide',
         requestData: { license_key },
         errorDetails: 'Licence introuvable',
+        duration: Date.now() - startTime,
       });
 
       return NextResponse.json(
@@ -107,7 +111,7 @@ export async function GET(request: NextRequest) {
       licenseId: license.id,
       clientName: license.clientName,
       status: 'INFO',
-      message: `Consultation de licence : ${isExpired ? 'EXPIRÉE' : 'VALIDE'}`,
+      message: `Consultation de licence : ${isExpired ? 'expirée' : 'valide'}`,
       requestData: { license_key },
       responseData: {
         status: license.status,
@@ -116,6 +120,7 @@ export async function GET(request: NextRequest) {
         siteUrl: license.siteUrl,
         isExpired,
       },
+      duration: Date.now() - startTime,
     });
 
     return NextResponse.json({
@@ -145,6 +150,7 @@ export async function GET(request: NextRequest) {
       label: 'LICENCE',
       message: 'Erreur serveur lors de la consultation',
       errorDetails: error instanceof Error ? error.message : String(error),
+      duration: Date.now() - startTime,
     });
 
     return NextResponse.json(
@@ -159,6 +165,8 @@ export async function GET(request: NextRequest) {
  * Activer/vérifier une licence avec association automatique au domaine
  */
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const body = await request.json();
     const { license_key, site_url } = body;
@@ -180,6 +188,7 @@ export async function POST(request: NextRequest) {
         message: 'Rate limit dépassé',
         requestData: { clientId, license_key, site_url },
         errorDetails: `Limite: ${rateLimitResult.limit} req/min, Reset dans: ${resetInSeconds}s`,
+        duration: Date.now() - startTime,
       });
 
       return NextResponse.json(
@@ -230,6 +239,7 @@ export async function POST(request: NextRequest) {
         message: 'Tentative d\'activation avec clé invalide',
         requestData: { license_key, site_url },
         errorDetails: 'Licence introuvable',
+        duration: Date.now() - startTime,
       });
 
       return NextResponse.json(
@@ -268,6 +278,7 @@ export async function POST(request: NextRequest) {
           site_url,
           endDate: license.endDate,
         },
+        duration: Date.now() - startTime,
       });
 
       return NextResponse.json(
@@ -299,6 +310,7 @@ export async function POST(request: NextRequest) {
           authorizedUrl: license.siteUrl,
         },
         errorDetails: 'Licence déjà associée à un autre domaine',
+        duration: Date.now() - startTime,
       });
 
       return NextResponse.json(
@@ -346,6 +358,7 @@ export async function POST(request: NextRequest) {
           label: 'LICENCE',
           isAssociated: updatedLicense.isAssociated,
         },
+        duration: Date.now() - startTime,
       });
 
       return NextResponse.json({
@@ -379,6 +392,7 @@ export async function POST(request: NextRequest) {
         license_key,
         site_url,
       },
+      duration: Date.now() - startTime,
     });
 
     return NextResponse.json({
@@ -407,6 +421,7 @@ export async function POST(request: NextRequest) {
       label: 'LICENCE',
       message: 'Erreur serveur lors de la vérification',
       errorDetails: error instanceof Error ? error.message : String(error),
+      duration: Date.now() - startTime,
     });
 
     return NextResponse.json(

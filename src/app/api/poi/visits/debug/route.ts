@@ -6,13 +6,13 @@ import prisma from '@/lib/prisma';
  */
 export async function GET() {
   try {
-    // Compter les POIs
+    // Compter les POI
     const poisCount = await prisma.poi.count();
     
     // Compter les visites
     const visitsCount = await prisma.poiVisit.count();
     
-    // Récupérer quelques POIs avec leurs visites
+    // Récupérer quelques POI avec leurs visites
     const poisWithVisits = await prisma.poi.findMany({
       take: 5,
       include: {
@@ -25,7 +25,7 @@ export async function GET() {
       },
     });
     
-    // Récupérer quelques visites avec leurs POIs
+    // Récupérer quelques visites avec leurs POI
     const visitsWithPois = await prisma.poiVisit.findMany({
       take: 5,
       include: {

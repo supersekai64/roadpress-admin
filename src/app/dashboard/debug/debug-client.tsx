@@ -112,7 +112,6 @@ interface DebugFilters {
   dateFrom: Date | undefined;
   dateTo: Date | undefined;
   search: string;
-  labels: string[];
 }
 
 // Composant helper pour les sélecteurs de date avec fermeture automatique
@@ -183,7 +182,6 @@ export default function DebugClient() {
     dateFrom: undefined,
     dateTo: undefined,
     search: '',
-    labels: [],
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
@@ -203,49 +201,9 @@ export default function DebugClient() {
   // État pour le filtre statuts avec recherche
   const [statusesSearchOpen, setStatusesSearchOpen] = useState(false);
   
-  // État pour le filtre labels avec recherche
-  const [labelsSearchOpen, setLabelsSearchOpen] = useState(false);
-  
   // État pour la dialog de détails
   const [selectedLog, setSelectedLog] = useState<DebugLog | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
-
-  // Fonction pour extraire le label d'une action
-  const getActionLabel = (action: string): string => {
-    // Règles de mapping des actions vers les labels
-    if (action.startsWith('PUSH_API_')) return 'API KEY';
-    if (action.startsWith('LICENSE_')) return 'LICENCE';
-    
-    // Actions de licence spécifiques
-    if (action.includes('LICENSE')) return 'LICENCE';
-    if (action.startsWith('CREATE_LICENSE')) return 'LICENCE';
-    if (action.startsWith('UPDATE_LICENSE')) return 'LICENCE';
-    if (action.startsWith('DELETE_LICENSE')) return 'LICENCE';
-    if (action.startsWith('VERIFY_LICENSE')) return 'LICENCE';
-    if (action.startsWith('ASSOCIATE_LICENSE')) return 'LICENCE';
-    if (action.startsWith('DISASSOCIATE_LICENSE')) return 'LICENCE';
-    if (action.startsWith('AUTO_ASSOCIATE')) return 'LICENCE';
-    
-    if (action.startsWith('POI_')) return 'POI';
-    if (action.startsWith('SYNC_POI')) return 'POI';
-    if (action.startsWith('SYNC_')) return 'SYNCHRONISATION';
-    if (action.startsWith('LOGS_UPDATE')) return 'SYNCHRONISATION';
-    if (action.startsWith('STATS_UPDATE')) return 'SYNCHRONISATION';
-    if (action.startsWith('API_USAGE_')) return 'USAGE API';
-    
-    // Par défaut, utiliser le premier segment avant le underscore
-    const parts = action.split('_');
-    return parts[0] || 'AUTRE';
-  };
-
-  // Liste statique de tous les labels possibles (non basée sur les logs filtrés)
-  const availableLabels = [
-    'API KEY',
-    'LICENCE',
-    'POI',
-    'SYNCHRONISATION',
-    'USAGE API',
-  ].sort();
 
   // Liste statique de tous les statuts possibles
   const availableStatuses = ['SUCCESS', 'INFO', 'WARNING', 'ERROR'];
@@ -312,8 +270,6 @@ export default function DebugClient() {
           if (value instanceof Date) {
             params.append(key, value.toISOString());
           }
-        } else if (key === 'labels' && Array.isArray(value) && value.length > 0) {
-          params.append(key, value.join(','));
         } else if (key === 'categories' && Array.isArray(value) && value.length > 0) {
           // Envoyer les catégories en tant que paramètre séparé par virgule
           params.append(key, value.join(','));
@@ -417,8 +373,6 @@ export default function DebugClient() {
           if (value instanceof Date) {
             params.append(key, value.toISOString());
           }
-        } else if (key === 'labels' && Array.isArray(value) && value.length > 0) {
-          params.append(key, value.join(','));
         } else if (typeof value === 'string' && value.trim()) {
           params.append(key, value);
         }
@@ -500,7 +454,6 @@ export default function DebugClient() {
       dateFrom: undefined,
       dateTo: undefined,
       search: '',
-      labels: [],
     });
     setCurrentPage(1);
   };
@@ -542,7 +495,8 @@ export default function DebugClient() {
 
   // Fonction pour formater la durée
   const formatDuration = (ms?: number) => {
-    if (!ms) return '-';
+    if (ms === undefined || ms === null) return '-';
+    if (ms === 0) return '0ms';
     if (ms < 1000) return `${ms}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
   };
@@ -730,7 +684,7 @@ export default function DebugClient() {
               </div>
 
               {/* Filtres sur la même ligne */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 {/* Catégorie (sélection simple) */}
                 <div className="space-y-2">
                   <Label htmlFor="category">Catégorie</Label>
@@ -750,60 +704,6 @@ export default function DebugClient() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                {/* Labels (multi-sélection) */}
-                <div className="space-y-2">
-                  <Label htmlFor="labels">Label {currentFilters.labels.length > 0 && `(${currentFilters.labels.length})`}</Label>
-                  <Popover open={labelsSearchOpen} onOpenChange={setLabelsSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={labelsSearchOpen}
-                        className="w-full justify-between"
-                      >
-                        <span className="truncate">
-                          {currentFilters.labels.length === 0
-                            ? 'Tous les labels'
-                            : currentFilters.labels.length === 1
-                            ? currentFilters.labels[0]
-                            : `${currentFilters.labels.length} sélectionnés`}
-                        </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                      <div className="max-h-[300px] overflow-y-auto p-1">
-                        {availableLabels.map((label) => {
-                            const isSelected = currentFilters.labels.includes(label);
-                            return (
-                              <div
-                                key={label}
-                                className={cn(
-                                  'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
-                                  isSelected && 'bg-accent'
-                                )}
-                                onClick={() => {
-                                  const newLabels = isSelected
-                                    ? currentFilters.labels.filter(l => l !== label)
-                                    : [...currentFilters.labels, label];
-                                  updateFilter('labels', newLabels);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    'mr-2 h-4 w-4',
-                                    isSelected ? 'opacity-100' : 'opacity-0'
-                                  )}
-                                />
-                                {label}
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
                 </div>
 
                 {/* Statut (sélection multiple) */}
@@ -958,7 +858,7 @@ export default function DebugClient() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Logs de debug ({totalCount.toLocaleString()})</span>
+                <span>Logs ({totalCount.toLocaleString()})</span>
                 {refreshing && (
                   <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
@@ -1025,7 +925,7 @@ export default function DebugClient() {
                         <TableCell colSpan={8} className="h-32 pt-12 text-center">
                           <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                             <Activity className="h-8 w-8" />
-                            <p>Aucun log de debug pour le moment</p>
+                            <p>Aucun log pour le moment</p>
                             <p className="text-sm">Les logs des clients apparaîtront ici automatiquement</p>
                           </div>
                         </TableCell>

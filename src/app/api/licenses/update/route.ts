@@ -11,6 +11,8 @@ import { DebugLogger } from '@/lib/debug-logger';
  * L'activation automatique se fait via /api/licenses/verify (appelé par le plugin).
  */
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const body = await request.json();
     const { license_key, site_url } = body;
@@ -66,6 +68,7 @@ export async function POST(request: NextRequest) {
         siteUrl: updatedLicense.siteUrl,
         isAssociated: updatedLicense.isAssociated,
       },
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json({
@@ -85,6 +88,7 @@ export async function POST(request: NextRequest) {
       label: 'LICENCE',
       message: 'Erreur lors de l\'association de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json(

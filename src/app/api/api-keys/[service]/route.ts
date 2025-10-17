@@ -20,6 +20,8 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const startTime = Date.now();
+  
   try {
     const session = await auth();
     if (!session) {
@@ -60,6 +62,8 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const startTime = Date.now();
+  
   try {
     const session = await auth();
     if (!session) {
@@ -111,6 +115,7 @@ export async function PUT(
         newKeyMasked: maskApiKey(validatedData.key),
         timestamp: new Date().toISOString(),
       },
+            duration: Date.now() - startTime,
     });
 
     // Masquer la clé dans la réponse
@@ -146,6 +151,7 @@ export async function PUT(
         user: session?.user?.email || 'unknown',
       },
       errorDetails: error instanceof Error ? error.message : String(error),
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json(

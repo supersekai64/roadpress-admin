@@ -164,8 +164,6 @@ model EmailStats {
 model EmailLog {
   id          String   @id @default(cuid())
   licenseId   String   @map("license_id")
-  emailTo     String   @map("email_to")
-  subject     String?
   status      String   // sent, delivered, opened, clicked, bounced, spam
   sendDate    DateTime @map("send_date")
   createdAt   DateTime @default(now()) @map("created_at")

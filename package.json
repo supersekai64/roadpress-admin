@@ -42,19 +42,8 @@
     "db:backup": "powershell -ExecutionPolicy Bypass -File ./scripts/quick-backup.ps1",
     "db:restore": "powershell -ExecutionPolicy Bypass -File ./scripts/restore-backup.ps1",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed.ts",
-    "db:seed:sms": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed-sms-reports.ts",
     "db:create-admin": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/create-admin.ts",
-    "create:user:paul": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/create-user-paul.ts",
-    "diagnose": "node scripts/diagnose-prisma.js",
-    "setup:env": "node scripts/setup-env.js",
-    "env:local": "node scripts/setup-env.js local && pnpm prisma generate",
-    "env:production": "node scripts/setup-env.js production && pnpm prisma generate",
-    "secret:generate": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-nextauth-secret.ps1",
-    "check:prod": "powershell -ExecutionPolicy Bypass -File ./scripts/check-prod-config.ps1",
-    "logs:inventory": "npx ts-node scripts/generate-logs-inventory.ts",
-    "logs:check-labels": "npx ts-node scripts/find-logs-without-label.ts",
-    "logs:apply-labels": "npx ts-node scripts/apply-labels.ts"
+    "logs:inventory": "npx ts-node scripts/generate-logs-inventory.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",

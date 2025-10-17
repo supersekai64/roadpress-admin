@@ -24,6 +24,8 @@ function generateLicenseKey(): string {
 
 // GET /api/licenses - Liste toutes les licences
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const session = await auth();
     if (!session) {
@@ -65,6 +67,8 @@ export async function GET(request: NextRequest) {
 
 // POST /api/licenses - Créer une nouvelle licence
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const session = await auth();
     if (!session) {
@@ -146,6 +150,7 @@ export async function POST(request: NextRequest) {
         siteUrl: license.siteUrl,
         isAssociated: license.isAssociated,
       },
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json(license, { status: 201 });
@@ -161,6 +166,7 @@ export async function POST(request: NextRequest) {
         label: 'LICENCE',
         message: 'Données invalides pour la création de licence',
         errorDetails: JSON.stringify(error.issues),
+              duration: Date.now() - startTime,
       });
 
       return NextResponse.json(
@@ -181,6 +187,7 @@ export async function POST(request: NextRequest) {
       label: 'LICENCE',
       message: 'Erreur lors de la création de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json(

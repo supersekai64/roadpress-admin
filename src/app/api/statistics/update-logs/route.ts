@@ -76,8 +76,6 @@ export async function POST(request: NextRequest) {
         licenseId: license.id,
         sendDate: new Date(log.send_date),
         status: 'sent',
-        emailTo: log.recipient || 'unknown@example.com',
-        subject: log.subject || 'Roadpress Booklet',
       }));
 
       await prisma.emailLog.createMany({
@@ -116,7 +114,7 @@ export async function POST(request: NextRequest) {
       clientName: license.clientName,
       status: 'SUCCESS',
       label: 'STATISTIQUES',
-      message: `Logs enregistrés (E-mails : ${emailLogsCreated} | SMS : ${smsLogsCreated})`,
+      message: `Logs enregistrés (@ : ${emailLogsCreated} - SMS : ${smsLogsCreated})`,
       requestData: {
         email_logs_count: emailLogsCreated,
         sms_logs_count: smsLogsCreated,

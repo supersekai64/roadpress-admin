@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
       clientName: license.clientName,
       status: 'SUCCESS',
       label: 'STATISTIQUES',
-      message: `Statistiques enregistrées (E-mails : ${emailStatsCreated} | SMS : ${smsLogsCreated} dans ${smsStatsCreated} pays)`,
+      message: `Statistiques enregistrées (@ : ${emailStatsCreated} - SMS : ${smsLogsCreated} (${smsStatsCreated} pays))`,
       requestData: {
         email_stats: emailStatsCreated,
         sms_countries: smsStatsCreated,

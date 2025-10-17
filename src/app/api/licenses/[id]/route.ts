@@ -24,6 +24,8 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const startTime = Date.now();
+  
   try {
     const session = await auth();
     if (!session) {
@@ -69,6 +71,8 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const startTime = Date.now();
+  
   try {
     const session = await auth();
     if (!session) {
@@ -156,6 +160,7 @@ export async function PUT(
         label: 'LICENCE',
         clientName: license.clientName,
       },
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json(license);
@@ -171,6 +176,7 @@ export async function PUT(
         label: 'LICENCE',
         message: 'Données invalides pour la modification de licence',
         errorDetails: JSON.stringify(error.issues),
+              duration: Date.now() - startTime,
       });
 
       return NextResponse.json(
@@ -191,6 +197,7 @@ export async function PUT(
       label: 'LICENCE',
       message: 'Erreur lors de la modification de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json(
@@ -205,6 +212,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const startTime = Date.now();
+  
   try {
     const session = await auth();
     if (!session) {
@@ -253,6 +262,7 @@ export async function DELETE(
           isAssociated: existingLicense.isAssociated,
         },
       },
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json(
@@ -272,6 +282,7 @@ export async function DELETE(
       label: 'LICENCE',
       message: 'Erreur lors de la suppression de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
+            duration: Date.now() - startTime,
     });
 
     return NextResponse.json(

@@ -110,12 +110,12 @@ export async function POST(request: Request) {
         licenseId,
         clientName,
         message: 'Format de données invalide',
-        errorDetails: 'Le champ "pois" doit être un tableau',
+        errorDetails: 'Le champ "POI" doit être un tableau',
         requestData: body,
       });
 
       return NextResponse.json(
-        { error: 'Format invalide : "pois" doit être un tableau' },
+        { error: 'Format invalide : "POI" doit être un tableau' },
         { status: 400 }
       );
     }
@@ -335,7 +335,7 @@ export async function POST(request: Request) {
       label: 'POI',
       licenseId,
       clientName,
-      message: `Synchronisation de ${pluralize(pois.length, 'POI')} et ${pluralize(visits?.length || 0, 'visite')}`,
+      message: `Synchronisation de ${pois.length} POI et ${pluralize(visits?.length || 0, 'visite')}`,
       requestData: { poisCount: pois.length, visitsCount: visits?.length || 0 },
       responseData: { pois: results, visits: visitResults },
       duration,
@@ -343,7 +343,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `Synchronisation terminée : ${pluralize(results.created, 'POI créé')} , ${pluralize(results.updated, 'POI mis à jour')}, ${pluralize(visitResults.created, 'visite créée')}, ${pluralize(visitResults.updated, 'visite mise à jour')}`,
+      message: `Synchronisation terminée : ${results.created} POI créé${results.created > 1 ? 's' : ''}, ${results.updated} POI mis à jour, ${pluralize(visitResults.created, 'visite créée')}, ${pluralize(visitResults.updated, 'visite mise à jour')}`,
       results: {
         pois: results,
         visits: visitResults,
