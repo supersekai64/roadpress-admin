@@ -11,13 +11,22 @@ export async function GET() {
 
     const totalLogs = await prisma.debugLog.count();
 
-    // Récupérer les catégories, statuts, clients et actions uniques depuis la base de données
-    const [categories, statuses, clients, actions] = await Promise.all([
-      prisma.debugLog.findMany({
-        select: { category: true },
-        distinct: ['category'],
-        orderBy: { category: 'asc' },
-      }),
+    // Liste complète de toutes les catégories possibles (enum LogCategory du schema)
+    const allCategories = [
+      'SYNC',
+      'PUSH_API',
+      'LICENSE',
+      'API_USAGE',
+      'API_KEYS',
+      'POI',
+      'AUTH',
+      'PRICING',
+      'SYSTEM',
+      'ERROR',
+    ];
+
+    // Récupérer les statuts, clients et actions uniques depuis la base de données
+    const [statuses, clients, actions] = await Promise.all([
       prisma.debugLog.findMany({
         select: { status: true },
         distinct: ['status'],
@@ -48,7 +57,7 @@ export async function GET() {
       }),
     ]);
 
-    const uniqueCategories = categories.map((c) => c.category).filter(Boolean);
+    const uniqueCategories = allCategories;
     const uniqueStatuses = statuses.map((s) => s.status).filter(Boolean);
     const uniqueClients = clients
       .filter((c) => c.clientName)

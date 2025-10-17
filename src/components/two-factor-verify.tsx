@@ -14,26 +14,45 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { ShieldCheck, Key } from 'lucide-react';
 
 export function TwoFactorVerify() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [token, setToken] = useState('');
   const [isBackupCode, setIsBackupCode] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  // Récupérer les credentials depuis l'URL (passés par la page login)
-  const email = searchParams.get('email') || '';
-  const password = searchParams.get('password') || '';
-
+  // Vérifier qu'il y a une session pending au montage et récupérer les credentials
   useEffect(() => {
-    if (!email || !password) {
-      // Si pas de credentials, rediriger vers login
-      router.push('/login');
+    async function checkPendingSession() {
+      try {
+        const response = await fetch('/api/auth/2fa/pending');
+        if (!response.ok) {
+          router.push('/login');
+          return;
+        }
+        const data = await response.json();
+        if (!data.userId || !data.email || !data.password) {
+          router.push('/login');
+          return;
+        }
+        setPendingUserId(data.userId);
+        setEmail(data.email);
+        setPassword(data.password);
+      } catch (error) {
+        router.push('/login');
+      }
     }
-  }, [email, password, router]);
+
+    checkPendingSession();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +67,7 @@ export function TwoFactorVerify() {
         body: JSON.stringify({
           token: token.trim(),
           isBackupCode,
+          rememberDevice,
         }),
       });
 
@@ -106,7 +126,7 @@ export function TwoFactorVerify() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="text-center">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -124,6 +144,22 @@ export function TwoFactorVerify() {
               autoFocus
               autoComplete="off"
             />
+          </div>
+
+          {/* Remember Device Checkbox */}
+          <div className="flex items-center space-x-2 p-3 bg-muted rounded-md">
+            <Checkbox
+              id="remember-device"
+              checked={rememberDevice}
+              onCheckedChange={(checked) => setRememberDevice(checked as boolean)}
+              disabled={loading}
+            />
+            <Label
+              htmlFor="remember-device"
+              className="text-sm cursor-pointer select-none"
+            >
+              Mémoriser cet appareil pendant 30 jours
+            </Label>
           </div>
 
           <div className="flex gap-2">

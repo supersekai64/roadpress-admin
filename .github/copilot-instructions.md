@@ -19,6 +19,18 @@ Quand un nouveau pattern/règle/procédure est identifié :
 
 **Objectif** : Un seul fichier = une seule source de vérité.
 
+### 🚫 RÈGLES DE PRÉSENTATION
+
+**INTERDICTIONS ABSOLUES** :
+- ❌ **AUCUN EMOJI DANS LES RÉPONSES** (sauf dans ce fichier d'instructions)
+- ❌ **NE JAMAIS créer de documentation .md pour l'utilisateur**
+- ✅ **SI BESOIN de documenter, COMPLÉTER DIRECTEMENT ce fichier d'instructions**
+
+**Style de communication** :
+- Réponses concises et professionnelles
+- Pas d'émojis dans le code, les commentaires ou les réponses
+- Documentation centralisée uniquement dans copilot-instructions.md
+
 ### ⚠️ Gestionnaire de paquets
 
 **TOUJOURS `pnpm`, JAMAIS `npm` ou `yarn`**
@@ -182,6 +194,66 @@ await DebugLogger.log({
   errorDetails: 'Domain mismatch',
 });
 ```
+
+#### 3. MESSAGES D'ERREUR GÉNÉRIQUES (RÈGLE ABSOLUE)
+
+**FAILLE CRITIQUE** : Messages d'erreur détaillés permettent l'énumération et le dévoilement d'informations sensibles.
+
+**RÈGLE** : TOUJOURS retourner le même message générique pour TOUS les échecs d'authentification/autorisation.
+
+```typescript
+// ❌ DANGEREUX - Révèle trop d'informations
+if (!licenseKey) {
+  return NextResponse.json(
+    { success: false, message: 'Clé de licence manquante' }, // ❌ Révèle le paramètre
+    { status: 400 }
+  );
+}
+
+if (!license) {
+  return NextResponse.json(
+    { success: false, message: 'Licence invalide' }, // ❌ Révèle que la licence n'existe pas
+    { status: 403 }
+  );
+}
+
+if (license.siteUrl !== site_url) {
+  return NextResponse.json(
+    { success: false, message: `Autorisé uniquement pour ${license.siteUrl}` }, // ❌ RÉVÈLE LE DOMAINE AUTORISÉ
+    { status: 403 }
+  );
+}
+
+// ✅ SÉCURISÉ - Message générique identique pour tous les échecs
+if (!licenseKey || !siteUrl) {
+  await DebugLogger.log({ /* détails internes */ });
+  return NextResponse.json(
+    { success: false, message: 'Accès non autorisé' }, // ✅ Message générique
+    { status: 403 }
+  );
+}
+
+if (!license || license.status !== 'ACTIVE' || !license.isAssociated) {
+  await DebugLogger.log({ /* détails internes */ });
+  return NextResponse.json(
+    { success: false, message: 'Accès non autorisé' }, // ✅ Même message
+    { status: 403 }
+  );
+}
+
+if (license.siteUrl !== site_url) {
+  await DebugLogger.log({ /* détails internes avec domaine autorisé */ });
+  return NextResponse.json(
+    { success: false, message: 'Accès non autorisé' }, // ✅ NE RÉVÈLE JAMAIS le domaine
+    { status: 403 }
+  );
+}
+```
+
+**Principe "Fail Closed"** :
+- Log détaillé en interne (DebugLogger)
+- Message générique à l'utilisateur ("Accès non autorisé")
+- Empêche l'énumération (deviner paramètres, domaines, états)
 
 #### 3. ENDPOINTS SENSIBLES : Checklist obligatoire
 

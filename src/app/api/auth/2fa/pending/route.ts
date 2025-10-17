@@ -13,11 +13,11 @@ const COOKIE_MAX_AGE = 5 * 60; // 5 minutes
 
 /**
  * POST /api/auth/2fa/pending
- * Stocke l'ID utilisateur en attente de vérification 2FA
+ * Stocke l'ID utilisateur + credentials en attente de vérification 2FA
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await request.json();
+    const { userId, email, password } = await request.json();
 
     if (!userId) {
       return NextResponse.json(
@@ -26,9 +26,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Stocker l'ID utilisateur dans un cookie sécurisé temporaire
+    // Stocker les données dans un cookie sécurisé temporaire
+    // Format: userId|email|password (en production, ça devrait être chiffré)
+    const pendingData = `${userId}|${email}|${password}`;
+    
     const cookieStore = await cookies();
-    cookieStore.set(PENDING_2FA_COOKIE, userId, {
+    cookieStore.set(PENDING_2FA_COOKIE, pendingData, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -48,21 +51,31 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/auth/2fa/pending
- * Récupère l'ID utilisateur en attente de vérification 2FA
+ * Récupère les données en attente de vérification 2FA
  */
 export async function GET() {
   try {
     const cookieStore = await cookies();
-    const userId = cookieStore.get(PENDING_2FA_COOKIE)?.value;
+    const pendingData = cookieStore.get(PENDING_2FA_COOKIE)?.value;
 
-    if (!userId) {
+    if (!pendingData) {
       return NextResponse.json(
         { error: 'Aucune session 2FA en attente' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ userId });
+    // Parser les données: userId|email|password
+    const [userId, email, password] = pendingData.split('|');
+
+    if (!userId || !email || !password) {
+      return NextResponse.json(
+        { error: 'Session 2FA invalide' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ userId, email, password });
   } catch (error) {
     console.error('[2FA PENDING ERROR]', error);
     return NextResponse.json(

@@ -81,15 +81,16 @@ export async function GET(request: NextRequest) {
         action: 'PROVIDE_KEYS',
         method: 'GET',
         endpoint: '/api/api-keys/provide',
-        status: 'ERROR',
+        status: 'WARNING',
         message: 'Tentative d\'accès sans clé de licence',
         requestData: { siteUrl },
         errorDetails: 'license_key manquant',
       });
 
+      // Message générique
       return NextResponse.json(
-        { success: false, message: 'Clé de licence manquante' },
-        { status: 400 }
+        { success: false, message: 'Accès non autorisé' },
+        { status: 403 }
       );
     }
 
@@ -100,15 +101,16 @@ export async function GET(request: NextRequest) {
         action: 'PROVIDE_KEYS',
         method: 'GET',
         endpoint: '/api/api-keys/provide',
-        status: 'ERROR',
+        status: 'WARNING',
         message: 'Tentative d\'accès sans site_url',
         requestData: { licenseKey },
         errorDetails: 'site_url manquant',
       });
 
+      // Message générique
       return NextResponse.json(
-        { success: false, message: 'URL du site manquante (site_url requis)' },
-        { status: 400 }
+        { success: false, message: 'Accès non autorisé' },
+        { status: 403 }
       );
     }
 
@@ -132,14 +134,15 @@ export async function GET(request: NextRequest) {
         action: 'PROVIDE_KEYS',
         method: 'GET',
         endpoint: '/api/api-keys/provide',
-        status: 'ERROR',
+        status: 'WARNING',
         message: 'Tentative d\'accès avec clé invalide',
         requestData: { licenseKey, siteUrl },
         errorDetails: 'Licence introuvable',
       });
 
+      // Message générique
       return NextResponse.json(
-        { success: false, message: 'Licence invalide' },
+        { success: false, message: 'Accès non autorisé' },
         { status: 403 }
       );
     }
@@ -162,14 +165,15 @@ export async function GET(request: NextRequest) {
         endpoint: '/api/api-keys/provide',
         licenseId: license.id,
         clientName: license.clientName,
-        status: 'ERROR',
-        message: `Tentative d'accès avec licence ${license.status}`,
+        status: 'WARNING',
+        message: `Tentative d'accès avec licence ${license.status} statut non autorisé`,
         requestData: { licenseKey, siteUrl, licenseStatus: license.status },
-        errorDetails: `Statut de licence non autorisé: ${license.status}`,
+        errorDetails: `Statut de licence non autorisé : ${license.status}`,
       });
 
+      // Message générique
       return NextResponse.json(
-        { success: false, message: 'Licence non active' },
+        { success: false, message: 'Accès non autorisé' },
         { status: 403 }
       );
     }
@@ -183,19 +187,20 @@ export async function GET(request: NextRequest) {
         endpoint: '/api/api-keys/provide',
         licenseId: license.id,
         clientName: license.clientName,
-        status: 'ERROR',
+        status: 'WARNING',
         message: 'Tentative d\'accès avec licence non associée',
         requestData: { licenseKey, siteUrl, isAssociated: license.isAssociated },
         errorDetails: 'Licence non associée à un domaine',
       });
 
+      // Message générique
       return NextResponse.json(
-        { success: false, message: 'Licence non associée à un domaine' },
+        { success: false, message: 'Accès non autorisé' },
         { status: 403 }
       );
     }
 
-    // SÉCURITÉ CRITIQUE : Vérifier que le domaine correspond EXACTEMENT
+    // Vérifier que le domaine correspond EXACTEMENT
     if (license.siteUrl !== siteUrl) {
       const clientId = getClientIdentifier(request);
       
@@ -213,8 +218,8 @@ export async function GET(request: NextRequest) {
         endpoint: '/api/api-keys/provide',
         licenseId: license.id,
         clientName: license.clientName,
-        status: 'ERROR',
-        message: 'TENTATIVE D\'ACCÈS NON AUTORISÉ - Domaine non correspondant',
+        status: 'WARNING',
+        message: 'Tentative d\'accès avec domaine non correspondant',
         requestData: {
           licenseKey,
           requestedUrl: siteUrl,
@@ -223,10 +228,11 @@ export async function GET(request: NextRequest) {
         errorDetails: 'URL demandée ne correspond pas à l\'URL autorisée',
       });
 
+      // Message générique
       return NextResponse.json(
         {
           success: false,
-          message: `Cette licence est autorisée uniquement pour ${license.siteUrl}`,
+          message: 'Accès non autorisé',
         },
         { status: 403 }
       );
@@ -244,7 +250,7 @@ export async function GET(request: NextRequest) {
         endpoint: '/api/api-keys/provide',
         licenseId: license.id,
         clientName: license.clientName,
-        status: 'ERROR',
+        status: 'WARNING',
         message: 'Tentative d\'accès avec licence expirée',
         requestData: {
           licenseKey,
@@ -254,8 +260,9 @@ export async function GET(request: NextRequest) {
         errorDetails: `Licence expirée le ${license.endDate}`,
       });
 
+      // Message générique
       return NextResponse.json(
-        { success: false, message: 'Licence expirée' },
+        { success: false, message: 'Accès non autorisé' },
         { status: 403 }
       );
     }

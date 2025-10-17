@@ -373,23 +373,13 @@ export default function DebugClient() {
 
   useEffect(() => {
     loadLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    loadLogs, // Fonction stabilisée avec useCallback
     currentPage, 
     itemsPerPage, 
     sortField, 
     sortDirection,
-    currentFilters.category,
-    currentFilters.categories.join(','),
-    currentFilters.status,
-    currentFilters.statuses.join(','),
-    currentFilters.action,
-    currentFilters.licenseId,
-    currentFilters.clientName,
-    currentFilters.dateFrom,
-    currentFilters.dateTo,
-    currentFilters.search,
-    currentFilters.labels.join(','),
+    currentFilters, // Référence à l'objet complet
   ]); // Recharger si une de ces valeurs change
 
   // Gestion du tri

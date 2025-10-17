@@ -26,34 +26,60 @@ export default function LoginPage() {
     const password = formData.get('password') as string;
 
     try {
+      // Vérifier si 2FA est activé AVANT d'appeler signIn
+      const checkResponse = await fetch('/api/auth/2fa/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const checkData = await checkResponse.json();
+
+      // Si 2FA est requis, créer la session pending et rediriger
+      if (checkData.requires2FA) {
+        // Stocker les credentials dans un cookie temporaire (5 min)
+        const pendingResponse = await fetch('/api/auth/2fa/pending', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            userId: checkData.userId,
+            email,
+            password 
+          }),
+        });
+
+        if (!pendingResponse.ok) {
+          setError('Erreur lors de la création de la session');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Attendre un peu pour s'assurer que le cookie est bien défini
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Rediriger vers la page de vérification 2FA
+        router.push('/login/2fa');
+        return;
+      }
+
+      // Si pas de 2FA ou erreur, continuer avec signIn normal
+      if (!checkData.success) {
+        setError('Email ou mot de passe invalide');
+        setIsLoading(false);
+        return;
+      }
+
+      // Si pas de 2FA requis, connexion normale
+      console.log('[LOGIN] No 2FA required, calling signIn...');
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
 
+      console.log('[LOGIN] SignIn result:', result);
+
       if (result?.error) {
-        // Vérifier si c'est une erreur 2FA
-        if (result.error.startsWith('2FA_REQUIRED:')) {
-          const userId = result.error.split(':')[1];
-          
-          // Stocker l'ID utilisateur dans un cookie temporaire
-          await fetch('/api/auth/2fa/pending', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId }),
-          });
-
-          // Rediriger vers la page de vérification 2FA avec les credentials
-          // (nécessaires pour se reconnecter après vérification)
-          const params = new URLSearchParams({
-            email,
-            password, // Temporaire en mémoire client, jamais stocké
-          });
-          router.push(`/login/2fa?${params.toString()}`);
-          return;
-        }
-
         setError('Email ou mot de passe invalide');
         setIsLoading(false);
         return;
@@ -62,6 +88,7 @@ export default function LoginPage() {
       router.push('/dashboard');
       router.refresh();
     } catch (error) {
+      console.error('[LOGIN ERROR]', error);
       setError('Une erreur est survenue. Veuillez réessayer.');
       setIsLoading(false);
     }

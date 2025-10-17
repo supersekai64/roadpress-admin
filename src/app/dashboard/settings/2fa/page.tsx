@@ -10,8 +10,18 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, ShieldCheck, ShieldAlert, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Shield, ShieldCheck, ShieldAlert, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function TwoFactorSettingsPage() {
   const [status, setStatus] = useState<{
@@ -21,6 +31,14 @@ export default function TwoFactorSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
   const [disabling, setDisabling] = useState(false);
+  
+  // États pour les modals
+  const [showDisableDialog, setShowDisableDialog] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [disablePassword, setDisablePassword] = useState('');
+  const [disableToken, setDisableToken] = useState('');
+  const [disableError, setDisableError] = useState('');
 
   // Charger le statut 2FA
   const loadStatus = async () => {
@@ -44,36 +62,41 @@ export default function TwoFactorSettingsPage() {
 
   // Désactiver le 2FA
   const handleDisable = async () => {
-    const password = prompt(
-      'Entrez votre mot de passe pour désactiver la 2FA :'
-    );
-    if (!password) return;
-
-    const token = prompt(
-      'Entrez votre code 2FA actuel (ou un code de backup) :'
-    );
-    if (!token) return;
+    setDisableError('');
+    
+    if (!disablePassword || !disableToken) {
+      setDisableError('Veuillez remplir tous les champs');
+      return;
+    }
 
     setDisabling(true);
     try {
       const response = await fetch('/api/auth/2fa/disable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, token }),
+        body: JSON.stringify({ password: disablePassword, token: disableToken }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        alert(data.error || 'Erreur lors de la désactivation');
+        setDisableError(data.error || 'Erreur lors de la désactivation');
         return;
       }
 
-      alert('2FA désactivée avec succès');
+      // Réinitialiser le formulaire
+      setDisablePassword('');
+      setDisableToken('');
+      setShowDisableDialog(false);
+      
+      // Afficher modal de succès
+      setSuccessMessage('2FA désactivée avec succès !');
+      setShowSuccessDialog(true);
+      
       await loadStatus();
       setShowSetup(false);
     } catch (error) {
       console.error('Erreur désactivation 2FA:', error);
-      alert('Erreur lors de la désactivation');
+      setDisableError('Erreur lors de la désactivation');
     } finally {
       setDisabling(false);
     }
@@ -96,7 +119,7 @@ export default function TwoFactorSettingsPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Shield className="h-8 w-8" />
-            Authentification à Deux Facteurs
+            Authentification à deux facteurs
           </h1>
           <p className="text-muted-foreground mt-2">
             Renforcez la sécurité de votre compte avec la 2FA
@@ -111,12 +134,12 @@ export default function TwoFactorSettingsPage() {
                 {status.enabled ? (
                   <>
                     <ShieldCheck className="h-5 w-5 text-green-500" />
-                    2FA Activée
+                    2FA activée
                   </>
                 ) : (
                   <>
                     <ShieldAlert className="h-5 w-5 text-amber-500" />
-                    2FA Désactivée
+                    2FA désactivée
                   </>
                 )}
               </CardTitle>
@@ -140,10 +163,10 @@ export default function TwoFactorSettingsPage() {
                   )}
                   <Button
                     variant="destructive"
-                    onClick={handleDisable}
+                    onClick={() => setShowDisableDialog(true)}
                     disabled={disabling}
                   >
-                    {disabling ? 'Désactivation...' : 'Désactiver la 2FA'}
+                    Désactiver la 2FA
                   </Button>
                 </>
               ) : (
@@ -161,10 +184,105 @@ export default function TwoFactorSettingsPage() {
             onComplete={async () => {
               await loadStatus();
               setShowSetup(false);
-              alert('2FA activée avec succès !');
+              setSuccessMessage('2FA activée avec succès !');
+              setShowSuccessDialog(true);
             }}
           />
         )}
+
+        {/* Modal: Désactiver 2FA */}
+        <Dialog open={showDisableDialog} onOpenChange={setShowDisableDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Désactiver la 2FA</DialogTitle>
+              <DialogDescription>
+                Pour désactiver l{`'`}authentification à deux facteurs, vous devez confirmer votre identité.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Entrez votre mot de passe"
+                  value={disablePassword}
+                  onChange={(e) => setDisablePassword(e.target.value)}
+                  disabled={disabling}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="token">Code 2FA ou code de backup</Label>
+                <Input
+                  id="token"
+                  type="text"
+                  placeholder="000000"
+                  value={disableToken}
+                  onChange={(e) => setDisableToken(e.target.value)}
+                  disabled={disabling}
+                  maxLength={6}
+                />
+              </div>
+              
+              {disableError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{disableError}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDisableDialog(false);
+                  setDisablePassword('');
+                  setDisableToken('');
+                  setDisableError('');
+                }}
+                disabled={disabling}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDisable}
+                disabled={disabling}
+              >
+                {disabling ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Désactivation...
+                  </>
+                ) : (
+                  'Désactiver'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: Succès */}
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                Opération réussie
+              </DialogTitle>
+              <DialogDescription>
+                {successMessage}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setShowSuccessDialog(false)}>
+                OK
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Informations */}
         <Card>

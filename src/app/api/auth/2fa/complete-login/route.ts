@@ -8,15 +8,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
-import { verifyTwoFactorToken, verifyBackupCode } from '@/lib/two-factor';
+import { verifyTwoFactorToken, verifyBackupCode, decrypt } from '@/lib/two-factor';
 import { DebugLogger } from '@/lib/debug-logger';
 import { signIn } from '@/lib/auth.server';
+import { createTrustedDevice, setTrustedDeviceCookie, extractDeviceInfo } from '@/lib/trusted-device';
 
 const PENDING_2FA_COOKIE = 'pending_2fa_user';
 
 interface CompleteLoginRequest {
   readonly token: string;
   readonly isBackupCode?: boolean;
+  readonly rememberDevice?: boolean;
 }
 
 /**
@@ -28,7 +30,7 @@ interface CompleteLoginRequest {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as CompleteLoginRequest;
-    const { token, isBackupCode = false } = body;
+    const { token, isBackupCode = false, rememberDevice = false } = body;
 
     if (!token) {
       return NextResponse.json(
@@ -39,9 +41,9 @@ export async function POST(request: NextRequest) {
 
     // Récupérer l'ID utilisateur depuis le cookie temporaire
     const cookieStore = await cookies();
-    const userId = cookieStore.get(PENDING_2FA_COOKIE)?.value;
+    const pendingData = cookieStore.get(PENDING_2FA_COOKIE)?.value;
 
-    if (!userId) {
+    if (!pendingData) {
       await DebugLogger.log({
         category: 'AUTH',
         action: 'COMPLETE_LOGIN',
@@ -53,6 +55,16 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         { error: 'Session expirée. Reconnectez-vous.' },
+        { status: 401 }
+      );
+    }
+
+    // Parser le cookie (format: "userId|email|password")
+    const [userId] = pendingData.split('|');
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Session invalide' },
         { status: 401 }
       );
     }
@@ -111,7 +123,9 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Vérifier le code TOTP
-      verified = verifyTwoFactorToken(user.twoFactorSecret, token);
+      // Déchiffrer le secret avant vérification
+      const decryptedSecret = decrypt(user.twoFactorSecret);
+      verified = verifyTwoFactorToken(decryptedSecret, token);
 
       if (verified) {
         await DebugLogger.log({
@@ -144,6 +158,24 @@ export async function POST(request: NextRequest) {
 
     // Code valide : nettoyer le cookie temporaire
     cookieStore.delete(PENDING_2FA_COOKIE);
+
+    // Si "Remember Device" coché : créer un trusted device
+    if (rememberDevice) {
+      const deviceInfo = extractDeviceInfo(request);
+      const deviceToken = await createTrustedDevice(userId, deviceInfo);
+      await setTrustedDeviceCookie(deviceToken);
+
+      await DebugLogger.log({
+        category: 'AUTH',
+        action: 'COMPLETE_LOGIN',
+        status: 'SUCCESS',
+        message: 'Appareil ajouté aux appareils de confiance',
+        requestData: {
+          userId,
+          deviceName: deviceInfo.deviceName,
+        },
+      });
+    }
 
     // Définir un cookie de vérification 2FA (valide 60 secondes)
     cookieStore.set('2fa_verified', userId, {

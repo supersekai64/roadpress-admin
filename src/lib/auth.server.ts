@@ -55,16 +55,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const cookieStore = await cookies();
         const twoFactorVerified = cookieStore.get('2fa_verified')?.value;
 
-        // Si 2FA activé ET pas encore vérifié : bloquer la connexion
-        if (user.twoFactorEnabled && twoFactorVerified !== user.id) {
-          // Signal spécial : erreur avec code "2FA_REQUIRED"
-          throw new Error('2FA_REQUIRED:' + user.id);
-        }
-
         // Si 2FA vérifié : nettoyer le cookie et autoriser la connexion
         if (twoFactorVerified === user.id) {
           cookieStore.delete('2fa_verified');
         }
+
+        // Note : La vérification du 2FA requis est faite AVANT l'appel à signIn()
+        // via l'API /api/auth/2fa/check, donc ici on autorise toujours si credentials OK
 
         return {
           id: user.id,

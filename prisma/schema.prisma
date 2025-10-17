@@ -27,15 +27,83 @@ model User {
   name      String?
   role      String   @default("admin")
   
-  // 🔐 Two-Factor Authentication (2FA)
+  // Two-Factor Authentication (2FA)
   twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
   twoFactorSecret  String? @map("two_factor_secret") // Encrypted TOTP secret
   backupCodes      String? @map("backup_codes") // JSON array of encrypted backup codes
+  force2FA         Boolean @default(false) @map("force_2fa") // Force 2FA activation at next login
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relations
+  trustedDevices TrustedDevice[]
+  twoFactorLogs  TwoFactorLog[]
+
   @@map("users")
+}
+
+// =====================================================
+// TRUSTED DEVICES (Remember Me)
+// =====================================================
+
+model TrustedDevice {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  deviceToken   String   @unique @map("device_token") // Unique token for this device
+  deviceName    String?  @map("device_name") // Browser + OS (e.g., "Chrome on Windows")
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  lastUsed      DateTime @default(now()) @map("last_used")
+  expiresAt     DateTime @map("expires_at") // 30 days from creation
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deviceToken])
+  @@index([expiresAt])
+  @@map("trusted_devices")
+}
+
+// =====================================================
+// TWO-FACTOR AUTHENTICATION LOGS
+// =====================================================
+
+model TwoFactorLog {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  action        TwoFactorAction
+  method        TwoFactorMethod?
+  success       Boolean
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  errorMessage  String?  @map("error_message")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+  @@map("two_factor_logs")
+}
+
+enum TwoFactorAction {
+  SETUP         // 2FA activated
+  DISABLE       // 2FA disabled
+  LOGIN_TOTP    // Login with TOTP code
+  LOGIN_BACKUP  // Login with backup code
+  LOGIN_SMS     // Login with SMS code
+  LOGIN_SKIP    // Login skipped (trusted device)
+  FAILED        // Failed attempt
+}
+
+enum TwoFactorMethod {
+  TOTP
+  BACKUP_CODE
+  SMS
+  TRUSTED_DEVICE
 }
 
 // =====================================================
