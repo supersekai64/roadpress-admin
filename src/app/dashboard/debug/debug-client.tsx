@@ -213,6 +213,17 @@ export default function DebugClient() {
     // Règles de mapping des actions vers les labels
     if (action.startsWith('PUSH_API_')) return 'API KEY';
     if (action.startsWith('LICENSE_')) return 'LICENCE';
+    
+    // Actions de licence spécifiques
+    if (action.includes('LICENSE')) return 'LICENCE';
+    if (action.startsWith('CREATE_LICENSE')) return 'LICENCE';
+    if (action.startsWith('UPDATE_LICENSE')) return 'LICENCE';
+    if (action.startsWith('DELETE_LICENSE')) return 'LICENCE';
+    if (action.startsWith('VERIFY_LICENSE')) return 'LICENCE';
+    if (action.startsWith('ASSOCIATE_LICENSE')) return 'LICENCE';
+    if (action.startsWith('DISASSOCIATE_LICENSE')) return 'LICENCE';
+    if (action.startsWith('AUTO_ASSOCIATE')) return 'LICENCE';
+    
     if (action.startsWith('POI_')) return 'POI';
     if (action.startsWith('SYNC_POI')) return 'POI';
     if (action.startsWith('SYNC_')) return 'SYNCHRONISATION';

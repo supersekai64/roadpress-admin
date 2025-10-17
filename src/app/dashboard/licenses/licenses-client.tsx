@@ -415,7 +415,7 @@ export default function LicensesPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Supprimer la licence</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="pt-4 text-base">
               Êtes-vous sûr de vouloir supprimer cette licence ? Cette action
               est irréversible et supprimera également toutes les statistiques
               associées.
@@ -423,10 +423,10 @@ export default function LicensesPage() {
           </DialogHeader>
           {selectedLicense && (
             <div className="py-4">
-              <p className="text-sm">
+              <p className="text-md">
                 <strong>Client :</strong> {selectedLicense.clientName}
               </p>
-              <p className="text-sm">
+              <p className="text-md">
                 <strong>Clé :</strong>{' '}
                 <code className="text-xs bg-muted px-2 py-1 rounded">
                   {selectedLicense.licenseKey}

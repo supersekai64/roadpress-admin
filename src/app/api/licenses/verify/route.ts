@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!license) {
-      // 📝 LOG : Tentative avec clé invalide
+      // LOG : Tentative avec clé invalide
       await DebugLogger.log({
         category: 'LICENSE',
-        action: 'VERIFY_LICENSE_FAILED',
+        action: 'VERIFY_LICENSE',
         method: 'POST',
         endpoint: '/api/licenses/verify',
         status: 'ERROR',
@@ -63,10 +63,10 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // 📝 LOG : Tentative avec licence expirée
+      // LOG : Tentative avec licence expirée
       await DebugLogger.log({
         category: 'LICENSE',
-        action: 'VERIFY_LICENSE_FAILED',
+        action: 'VERIFY_LICENSE',
         method: 'POST',
         endpoint: '/api/licenses/verify',
         licenseId: license.id,
@@ -90,12 +90,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 🔒 SÉCURITÉ : Vérifier si déjà associée à un autre domaine
+    // Vérifier si déjà associée à un autre domaine
     if (license.isAssociated && license.siteUrl !== site_url) {
-      // 📝 LOG : Tentative d'utilisation sur un domaine différent
+      // LOG : Tentative d'utilisation sur un domaine différent
       await DebugLogger.log({
         category: 'LICENSE',
-        action: 'VERIFY_LICENSE_BLOCKED',
+        action: 'VERIFY_LICENSE',
         method: 'POST',
         endpoint: '/api/licenses/verify',
         licenseId: license.id,
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ AUTO-ASSOCIATION : Première activation ou réactivation sur le même domaine
+    // Première activation ou réactivation sur le même domaine
     if (!license.isAssociated) {
       const updatedLicense = await prisma.license.update({
         where: { id: license.id },
@@ -132,10 +132,10 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // 📝 LOG : Activation réussie avec auto-association
+      // LOG : Activation réussie avec auto-association
       await DebugLogger.log({
         category: 'LICENSE',
-        action: 'AUTO_ASSOCIATE_LICENSE',
+        action: 'ASSOCIATE_LICENSE',
         method: 'POST',
         endpoint: '/api/licenses/verify',
         licenseId: license.id,
@@ -171,11 +171,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ✅ Licence déjà activée sur ce domaine - vérification standard
-    // 📝 LOG : Vérification réussie (licence déjà active)
+    // Licence déjà activée sur ce domaine - vérification standard
+    // LOG : Vérification réussie (licence déjà active)
     await DebugLogger.log({
       category: 'LICENSE',
-      action: 'VERIFY_LICENSE_SUCCESS',
+      action: 'VERIFY_LICENSE',
       method: 'POST',
       endpoint: '/api/licenses/verify',
       licenseId: license.id,
@@ -204,10 +204,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Erreur vérification licence:', error);
 
-    // 📝 LOG : Erreur serveur
+    // LOG : Erreur serveur
     await DebugLogger.log({
       category: 'LICENSE',
-      action: 'VERIFY_LICENSE_ERROR',
+      action: 'VERIFY_LICENSE',
       method: 'POST',
       endpoint: '/api/licenses/verify',
       status: 'ERROR',

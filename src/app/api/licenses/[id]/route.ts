@@ -233,7 +233,7 @@ export async function DELETE(
       action: 'DELETE_LICENSE',
       method: 'DELETE',
       endpoint: `/api/licenses/${id}`,
-      licenseId: existingLicense.id,
+      licenseId: undefined, // La licence n'existe plus
       clientName: existingLicense.clientName,
       status: 'SUCCESS',
       message: `Licence supprimée avec succès pour ${existingLicense.clientName}`,

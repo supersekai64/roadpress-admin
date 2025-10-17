@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     // Log du succès
     await DebugLogger.log({
       category: 'API_USAGE',
-      action: 'STATS_UPDATE_SUCCESS',
+      action: 'STATS_UPDATE',
       method: 'POST',
       endpoint: '/api/statistics/update-stats',
       licenseId: license.id,
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
     // Log de l'erreur
     await DebugLogger.log({
       category: 'API_USAGE',
-      action: 'STATS_UPDATE_ERROR',
+      action: 'STATS_UPDATE',
       method: 'POST',
       endpoint: '/api/statistics/update-stats',
       status: 'ERROR',
