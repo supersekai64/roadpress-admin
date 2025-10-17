@@ -41,10 +41,12 @@ export async function POST(request: Request) {
     const licenseKey = request.headers.get('X-License-Key');
 
     if (!licenseKey) {
-      await DebugLogger.logError({
+      await DebugLogger.log({
+        category: 'POI',
         action: 'SYNC_POI',
-        message: 'Tentative de sync sans clé de licence',
-        errorDetails: 'Header X-License-Key manquant',
+        status: 'ERROR',
+        message: 'Tentative de synchronisation sans clé de licence',
+        requestData: { reason: 'Header X-License-Key manquant' },
       });
 
       return NextResponse.json(
@@ -59,10 +61,12 @@ export async function POST(request: Request) {
     });
 
     if (!license) {
-      await DebugLogger.logError({
+      await DebugLogger.log({
+        category: 'POI',
         action: 'SYNC_POI',
-        message: 'Tentative de sync avec clé invalide',
-        errorDetails: `Clé: ${licenseKey.substring(0, 8)}...`,
+        status: 'ERROR',
+        message: 'Tentative de synchronisation avec clé invalide',
+        requestData: { licenseKeyPrefix: `${licenseKey.substring(0, 8)}...` },
       });
 
       return NextResponse.json(
@@ -72,12 +76,14 @@ export async function POST(request: Request) {
     }
 
     if (license.status !== 'ACTIVE') {
-      await DebugLogger.logError({
+      await DebugLogger.log({
+        category: 'POI',
         action: 'SYNC_POI',
+        status: 'ERROR',
         licenseId: license.id,
         clientName: license.clientName,
-        message: 'Tentative de sync avec licence inactive',
-        errorDetails: `Status: ${license.status}`,
+        message: 'Tentative de synchronisation avec licence inactive',
+        requestData: { status: license.status },
       });
 
       return NextResponse.json(
@@ -93,8 +99,10 @@ export async function POST(request: Request) {
     const { pois, visits } = body;
 
     if (!Array.isArray(pois)) {
-      await DebugLogger.logError({
+      await DebugLogger.log({
+        category: 'POI',
         action: 'SYNC_POI',
+        status: 'ERROR',
         licenseId,
         clientName,
         message: 'Format de données invalide',
@@ -109,11 +117,13 @@ export async function POST(request: Request) {
     }
 
     if (pois.length === 0) {
-      await DebugLogger.logWarning({
+      await DebugLogger.log({
+        category: 'POI',
         action: 'SYNC_POI',
+        status: 'INFO',
         licenseId,
         clientName,
-        message: 'Tentative de sync avec tableau vide',
+        message: 'Tentative de synchronisation avec tableau vide',
       });
 
       return NextResponse.json({
@@ -313,8 +323,10 @@ export async function POST(request: Request) {
     const duration = Date.now() - startTime;
 
     // Log de succès
-    await DebugLogger.logSuccess({
+    await DebugLogger.log({
+      category: 'POI',
       action: 'SYNC_POI',
+      status: 'SUCCESS',
       licenseId,
       clientName,
       message: `Synchronisation de ${pluralize(pois.length, 'POI')} et ${pluralize(visits?.length || 0, 'visite')}`,
@@ -337,8 +349,10 @@ export async function POST(request: Request) {
     const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
     const errorStack = error instanceof Error ? error.stack : undefined;
 
-    await DebugLogger.logError({
+    await DebugLogger.log({
+      category: 'POI',
       action: 'SYNC_POI',
+      status: 'ERROR',
       licenseId,
       clientName,
       message: 'Erreur serveur lors de la synchronisation des POI',

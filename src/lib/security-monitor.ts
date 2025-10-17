@@ -165,12 +165,12 @@ Cet email a été envoyé automatiquement par le système de monitoring de sécu
 
     // Log succès envoi email
     await DebugLogger.log({
-      category: 'API_KEYS',
+      category: 'SECURITY',
       action: 'SEND_SECURITY_ALERT',
       method: 'POST',
       endpoint: 'Brevo API',
       status: 'SUCCESS',
-      message: `Alerte sécurité envoyée: ${event.type}`,
+      message: `Alerte sécurité envoyée : ${event.type}`,
       requestData: {
         eventType: event.type,
         endpoint: event.endpoint,
@@ -182,12 +182,12 @@ Cet email a été envoyé automatiquement par le système de monitoring de sécu
     
     // Log échec envoi email
     await DebugLogger.log({
-      category: 'API_KEYS',
+      category: 'SECURITY',
       action: 'SEND_SECURITY_ALERT',
       method: 'POST',
       endpoint: 'Brevo API',
       status: 'ERROR',
-      message: `Échec envoi alerte sécurité: ${event.type}`,
+      message: `Échec envoi alerte sécurité : ${event.type}`,
       errorDetails: error instanceof Error ? error.message : String(error),
     });
   }
@@ -314,7 +314,7 @@ export async function analyzeSecurityPatterns(): Promise<void> {
 
   // Log statistiques
   await DebugLogger.log({
-    category: 'API_KEYS',
+    category: 'SYSTEM',
     action: 'SECURITY_ANALYSIS',
     method: 'GET',
     endpoint: 'Security Monitor',

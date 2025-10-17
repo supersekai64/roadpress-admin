@@ -7,7 +7,7 @@ import { DebugLogger } from '@/lib/debug-logger';
  * POST /api/licenses/update
  * Body: { license_key, site_url }
  * 
- * ⚠️ NOTE : Cette route est maintenue pour la réassociation manuelle par l'admin.
+ * NOTE : Cette route est maintenue pour la réassociation manuelle par l'admin.
  * L'activation automatique se fait via /api/licenses/verify (appelé par le plugin).
  */
 export async function POST(request: NextRequest) {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       licenseId: license.id,
       clientName: license.clientName,
       status: 'SUCCESS',
-      message: `Licence associée avec succès au site ${site_url}`,
+      message: 'Licence associée avec succès',
       requestData: {
         license_key,
         site_url,

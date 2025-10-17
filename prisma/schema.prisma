@@ -461,13 +461,12 @@ enum LogCategory {
   SYNC          // Synchronisation des données statistiques
   PUSH_API      // Envoi des clés API aux sites clients
   LICENSE       // Opérations sur les licences
-  API_USAGE     // Utilisation des APIs (OpenAI, DeepL, SMS, Email)
   API_KEYS      // Accès aux clés API (sécurité critique)
   POI           // Opérations sur les points d'intérêt
   AUTH          // Authentification et autorisations
-  PRICING       // Système de tarification SMS
   SYSTEM        // Logs système généraux
   ERROR         // Erreurs critiques
+  SECURITY      // Événements de sécurité (tentatives d'accès non autorisées, anomalies)
 }
 
 enum LogStatus {

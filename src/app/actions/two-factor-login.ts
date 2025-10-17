@@ -31,14 +31,6 @@ export async function verifyTwoFactorAndLogin(
     const userId = cookieStore.get(PENDING_2FA_COOKIE)?.value;
 
     if (!userId) {
-      await DebugLogger.log({
-        category: 'AUTH',
-        action: 'VERIFY_2FA_LOGIN',
-        method: 'SERVER_ACTION',
-        status: 'ERROR',
-        message: 'Session 2FA expirée',
-      });
-
       return {
         success: false,
         error: 'Session expirée. Reconnectez-vous.',
@@ -60,14 +52,6 @@ export async function verifyTwoFactorAndLogin(
     });
 
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
-      await DebugLogger.log({
-        category: 'AUTH',
-        action: 'VERIFY_2FA_LOGIN',
-        status: 'ERROR',
-        message: '2FA non configuré',
-        requestData: { userId },
-      });
-
       cookieStore.delete(PENDING_2FA_COOKIE);
 
       return {
@@ -113,7 +97,7 @@ export async function verifyTwoFactorAndLogin(
       await DebugLogger.log({
         category: 'AUTH',
         action: 'VERIFY_2FA_LOGIN',
-        status: 'ERROR',
+        status: 'WARNING',
         message: 'Code 2FA invalide',
         requestData: { userId, isBackupCode },
       });

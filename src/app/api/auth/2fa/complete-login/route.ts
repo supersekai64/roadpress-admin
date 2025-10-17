@@ -9,7 +9,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { verifyTwoFactorToken, verifyBackupCode, decrypt } from '@/lib/two-factor';
-import { DebugLogger } from '@/lib/debug-logger';
 import { signIn } from '@/lib/auth.server';
 import { createTrustedDevice, setTrustedDeviceCookie, extractDeviceInfo } from '@/lib/trusted-device';
 
@@ -44,15 +43,6 @@ export async function POST(request: NextRequest) {
     const pendingData = cookieStore.get(PENDING_2FA_COOKIE)?.value;
 
     if (!pendingData) {
-      await DebugLogger.log({
-        category: 'AUTH',
-        action: 'COMPLETE_LOGIN',
-        method: 'POST',
-        endpoint: '/api/auth/2fa/complete-login',
-        status: 'ERROR',
-        message: 'Session 2FA expirée',
-      });
-
       return NextResponse.json(
         { error: 'Session expirée. Reconnectez-vous.' },
         { status: 401 }
@@ -84,14 +74,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
-      await DebugLogger.log({
-        category: 'AUTH',
-        action: 'COMPLETE_LOGIN',
-        status: 'ERROR',
-        message: '2FA non configuré ou utilisateur introuvable',
-        requestData: { userId },
-      });
-
       // Nettoyer le cookie
       cookieStore.delete(PENDING_2FA_COOKIE);
 
@@ -108,48 +90,14 @@ export async function POST(request: NextRequest) {
       // Vérifier et consommer un backup code
       const result = await verifyBackupCode(userId, token);
       verified = result.valid;
-
-      if (verified) {
-        await DebugLogger.log({
-          category: 'AUTH',
-          action: 'COMPLETE_LOGIN',
-          status: 'SUCCESS',
-          message: 'Connexion avec backup code',
-          requestData: {
-            userId,
-            backupCodesRemaining: result.remainingCodes.length,
-          },
-        });
-      }
     } else {
       // Vérifier le code TOTP
       // Déchiffrer le secret avant vérification
       const decryptedSecret = decrypt(user.twoFactorSecret);
       verified = verifyTwoFactorToken(decryptedSecret, token);
-
-      if (verified) {
-        await DebugLogger.log({
-          category: 'AUTH',
-          action: 'COMPLETE_LOGIN',
-          status: 'SUCCESS',
-          message: 'Connexion avec TOTP',
-          requestData: { userId },
-        });
-      }
     }
 
     if (!verified) {
-      await DebugLogger.log({
-        category: 'AUTH',
-        action: 'COMPLETE_LOGIN',
-        status: 'ERROR',
-        message: 'Code 2FA invalide',
-        requestData: {
-          userId,
-          isBackupCode,
-        },
-      });
-
       return NextResponse.json(
         { error: 'Code invalide' },
         { status: 401 }
@@ -164,17 +112,6 @@ export async function POST(request: NextRequest) {
       const deviceInfo = extractDeviceInfo(request);
       const deviceToken = await createTrustedDevice(userId, deviceInfo);
       await setTrustedDeviceCookie(deviceToken);
-
-      await DebugLogger.log({
-        category: 'AUTH',
-        action: 'COMPLETE_LOGIN',
-        status: 'SUCCESS',
-        message: 'Appareil ajouté aux appareils de confiance',
-        requestData: {
-          userId,
-          deviceName: deviceInfo.deviceName,
-        },
-      });
     }
 
     // Définir un cookie de vérification 2FA (valide 60 secondes)
@@ -198,13 +135,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[COMPLETE LOGIN ERROR]', error);
-    await DebugLogger.log({
-      category: 'AUTH',
-      action: 'COMPLETE_LOGIN',
-      status: 'ERROR',
-      message: 'Erreur serveur',
-      errorDetails: error instanceof Error ? error.message : String(error),
-    });
 
     return NextResponse.json(
       { error: 'Erreur serveur' },

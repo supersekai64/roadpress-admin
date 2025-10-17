@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
 
     if (!license_key) {
       await DebugLogger.log({
-        category: 'API_USAGE',
-        action: 'API_USAGE_UPDATE_FAILED',
+        category: 'SYNC',
+        action: 'API_USAGE_UPDATE',
         method: 'POST',
         endpoint: '/api/statistics/update-api-usage',
         status: 'ERROR',
@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
 
     if (!license || license.status !== 'ACTIVE') {
       await DebugLogger.log({
-        category: 'API_USAGE',
-        action: 'API_USAGE_UPDATE_UNAUTHORIZED',
+        category: 'SYNC',
+        action: 'API_USAGE_UPDATE',
         method: 'POST',
         endpoint: '/api/statistics/update-api-usage',
         status: 'ERROR',
@@ -89,14 +89,14 @@ export async function POST(request: NextRequest) {
 
     // Log du succès
     await DebugLogger.log({
-      category: 'API_USAGE',
+      category: 'SYNC',
       action: 'API_USAGE_UPDATE',
       method: 'POST',
       endpoint: '/api/statistics/update-api-usage',
       licenseId: license.id,
       clientName: license.clientName,
       status: 'SUCCESS',
-      message: `Stats API enregistrées (DeepL: ${deeplCount}, OpenAI: ${openaiCount})`,
+      message: `Statistiques API enregistrées (DeepL : ${deeplCount} | OpenAI : ${openaiCount})`,
       requestData: {
         deepl_tokens: deepl_stats?.tokens_used || 0,
         openai_tokens: openai_stats?.tokens_used || 0,
@@ -120,12 +120,12 @@ export async function POST(request: NextRequest) {
     
     // Log de l'erreur
     await DebugLogger.log({
-      category: 'API_USAGE',
+      category: 'SYNC',
       action: 'API_USAGE_UPDATE',
       method: 'POST',
       endpoint: '/api/statistics/update-api-usage',
       status: 'ERROR',
-      message: 'Erreur lors de l\'enregistrement des stats API',
+      message: 'Erreur lors de l\'enregistrement des statistiques API',
       errorDetails: error instanceof Error ? error.stack : String(error),
       duration: Date.now() - startTime,
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,

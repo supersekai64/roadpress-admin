@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
         method: 'GET',
         endpoint: '/api/api-keys/provide',
         status: 'WARNING',
-        message: 'Tentative d\'accès sans site_url',
+        message: 'Tentative d\'accès sans domaine',
         requestData: { licenseKey },
         errorDetails: 'site_url manquant',
       });
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
         licenseId: license.id,
         clientName: license.clientName,
         status: 'WARNING',
-        message: `Tentative d'accès avec licence ${license.status} statut non autorisé`,
+        message: 'Tentative d\'accès avec licence non active',
         requestData: { licenseKey, siteUrl, licenseStatus: license.status },
         errorDetails: `Statut de licence non autorisé : ${license.status}`,
       });

@@ -78,8 +78,8 @@ export async function GET(request: NextRequest) {
         action: 'CHECK_LICENSE',
         method: 'GET',
         endpoint: '/api/licenses/verify',
-        status: 'ERROR',
-        message: `Consultation d'une clé invalide`,
+        status: 'INFO',
+        message: 'Consultation d\'une clé invalide',
         requestData: { license_key },
         errorDetails: 'Licence introuvable',
       });
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       endpoint: '/api/licenses/verify',
       licenseId: license.id,
       clientName: license.clientName,
-      status: 'SUCCESS',
+      status: 'INFO',
       message: `Consultation de licence : ${isExpired ? 'EXPIRÉE' : 'VALIDE'}`,
       requestData: { license_key },
       responseData: {
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { license_key, site_url } = body;
 
-    // 🔐 RATE LIMITING : 30 requêtes/min par IP (HIGH priority)
+    // RATE LIMITING : 30 requêtes/min par IP (HIGH priority)
     const clientId = getClientIdentifier(request);
     const rateLimitResult = await checkRateLimit(clientId, RateLimitPresets.HIGH);
 
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         endpoint: '/api/licenses/verify',
         status: 'WARNING',
-        message: 'RATE LIMIT DÉPASSÉ (POST)',
+        message: 'Rate limit dépassé',
         requestData: { clientId, license_key, site_url },
         errorDetails: `Limite: ${rateLimitResult.limit} req/min, Reset dans: ${resetInSeconds}s`,
       });
@@ -220,8 +220,8 @@ export async function POST(request: NextRequest) {
         action: 'VERIFY_LICENSE',
         method: 'POST',
         endpoint: '/api/licenses/verify',
-        status: 'ERROR',
-        message: `Tentative d'activation avec clé invalide`,
+        status: 'INFO',
+        message: 'Tentative d\'activation avec clé invalide',
         requestData: { license_key, site_url },
         errorDetails: 'Licence introuvable',
       });
@@ -254,8 +254,8 @@ export async function POST(request: NextRequest) {
         endpoint: '/api/licenses/verify',
         licenseId: license.id,
         clientName: license.clientName,
-        status: 'WARNING',
-        message: `Tentative d'activation avec licence expirée`,
+        status: 'INFO',
+        message: 'Tentative d\'activation avec licence expirée',
         requestData: {
           license_key,
           site_url,
@@ -283,8 +283,8 @@ export async function POST(request: NextRequest) {
         endpoint: '/api/licenses/verify',
         licenseId: license.id,
         clientName: license.clientName,
-        status: 'ERROR',
-        message: `Tentative d'utilisation sur un domaine non autorisé`,
+        status: 'INFO',
+        message: 'Tentative d\'utilisation sur un domaine non autorisé',
         requestData: {
           license_key,
           attemptedUrl: site_url,
@@ -296,7 +296,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           valid: false,
-          message: `Cette licence est déjà activée sur ${license.siteUrl}. Contactez l'administrateur pour réassocier la licence.`,
+          message: 'Cette licence est déjà activée. Contactez l\'administrateur pour réassocier la licence.',
           authorizedDomain: license.siteUrl,
         },
         { status: 403 }
@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
         licenseId: license.id,
         clientName: license.clientName,
         status: 'SUCCESS',
-        message: `Licence activée et associée automatiquement à ${site_url}`,
+        message: 'Licence activée et associée',
         requestData: {
           license_key,
           site_url,

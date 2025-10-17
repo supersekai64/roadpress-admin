@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       licenseId: license.id,
       clientName: license.clientName,
       status: 'SUCCESS',
-      message: `Licence désassociée avec succès (ancienne URL: ${license.siteUrl || 'aucune'})`,
+      message: `Licence désassociée avec succès (ancienne URL : ${license.siteUrl || 'aucune'})`,
       requestData: {
         license_key,
         previousUrl: license.siteUrl,
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       message: 'Licence désassociée avec succès',
     });
   } catch (error) {
-    console.error('Erreur désassociation licence:', error);
+    console.error('Erreur désassociation licence :', error);
 
     // LOG : Erreur lors de la désassociation
     await DebugLogger.log({

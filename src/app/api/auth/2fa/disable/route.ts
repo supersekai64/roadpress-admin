@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth.server';
 import prisma from '@/lib/prisma';
 import { verifyTwoFactorToken, verifyBackupCode, decrypt } from '@/lib/two-factor';
-import { DebugLogger } from '@/lib/debug-logger';
 
 interface DisableRequest {
   token?: string; // Token TOTP ou code de backup
@@ -45,19 +44,6 @@ export async function POST(request: NextRequest) {
     const passwordValid = await bcrypt.compare(password, user.password);
 
     if (!passwordValid) {
-      await DebugLogger.log({
-        category: 'LICENSE',
-        action: 'DISABLE_2FA',
-        method: 'POST',
-        endpoint: '/api/auth/2fa/disable',
-        status: 'WARNING',
-        message: `Tentative désactivation 2FA avec mauvais mot de passe : ${user.email}`,
-        requestData: {
-          userId: user.id,
-          email: user.email,
-        },
-      });
-
       return NextResponse.json(
         { error: 'Mot de passe incorrect' },
         { status: 401 }
@@ -87,19 +73,6 @@ export async function POST(request: NextRequest) {
       }
 
       if (!isValid) {
-        await DebugLogger.log({
-          category: 'LICENSE',
-          action: 'DISABLE_2FA',
-          method: 'POST',
-          endpoint: '/api/auth/2fa/disable',
-          status: 'WARNING',
-          message: `Échec désactivation 2FA : token invalide pour ${user.email}`,
-          requestData: {
-            userId: user.id,
-            email: user.email,
-          },
-        });
-
         return NextResponse.json(
           { error: 'Token 2FA invalide' },
           { status: 401 }
@@ -117,35 +90,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await DebugLogger.log({
-      category: 'LICENSE',
-      action: 'DISABLE_2FA',
-      method: 'POST',
-      endpoint: '/api/auth/2fa/disable',
-      status: 'SUCCESS',
-      message: `2FA désactivé pour ${user.email}`,
-      requestData: {
-        userId: user.id,
-        email: user.email,
-      },
-    });
-
     return NextResponse.json({
       success: true,
       message: '2FA désactivé avec succès',
     });
   } catch (error) {
     console.error('Erreur désactivation 2FA:', error);
-
-    await DebugLogger.log({
-      category: 'LICENSE',
-      action: 'DISABLE_2FA',
-      method: 'POST',
-      endpoint: '/api/auth/2fa/disable',
-      status: 'ERROR',
-      message: 'Erreur désactivation 2FA',
-      errorDetails: error instanceof Error ? error.message : String(error),
-    });
 
     return NextResponse.json(
       { error: 'Erreur lors de la désactivation' },

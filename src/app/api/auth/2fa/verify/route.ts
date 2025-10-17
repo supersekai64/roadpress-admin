@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth.server';
 import prisma from '@/lib/prisma';
 import { verifyTwoFactorToken, verifyBackupCode, decrypt, encrypt } from '@/lib/two-factor';
-import { DebugLogger } from '@/lib/debug-logger';
 
 interface VerifyRequest {
   token: string;
@@ -54,21 +53,6 @@ export async function POST(request: NextRequest) {
     const isValid = verifyTwoFactorToken(secret, token);
 
     if (!isValid) {
-      // Log tentative échouée
-      await DebugLogger.log({
-        category: 'LICENSE',
-        action: 'VERIFY_2FA',
-        method: 'POST',
-        endpoint: '/api/auth/2fa/verify',
-        status: 'WARNING',
-        message: `Échec vérification 2FA pour ${user.email}`,
-        requestData: {
-          userId: user.id,
-          email: user.email,
-          tokenLength: token.length,
-        },
-      });
-
       return NextResponse.json(
         { success: false, message: 'Code invalide' },
         { status: 401 }
@@ -82,19 +66,6 @@ export async function POST(request: NextRequest) {
         data: { twoFactorEnabled: true },
       });
 
-      await DebugLogger.log({
-        category: 'LICENSE',
-        action: 'ENABLE_2FA',
-        method: 'POST',
-        endpoint: '/api/auth/2fa/verify',
-        status: 'SUCCESS',
-        message: `2FA activé avec succès pour ${user.email}`,
-        requestData: {
-          userId: user.id,
-          email: user.email,
-        },
-      });
-
       return NextResponse.json({
         success: true,
         message: '2FA activé avec succès',
@@ -103,35 +74,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérification simple (login)
-    await DebugLogger.log({
-      category: 'LICENSE',
-      action: 'VERIFY_2FA',
-      method: 'POST',
-      endpoint: '/api/auth/2fa/verify',
-      status: 'SUCCESS',
-      message: `2FA vérifié pour ${user.email}`,
-      requestData: {
-        userId: user.id,
-        email: user.email,
-      },
-    });
-
     return NextResponse.json({
       success: true,
       message: 'Code valide',
     });
   } catch (error) {
     console.error('Erreur vérification 2FA:', error);
-
-    await DebugLogger.log({
-      category: 'LICENSE',
-      action: 'VERIFY_2FA',
-      method: 'POST',
-      endpoint: '/api/auth/2fa/verify',
-      status: 'ERROR',
-      message: 'Erreur vérification 2FA',
-      errorDetails: error instanceof Error ? error.message : String(error),
-    });
 
     return NextResponse.json(
       { error: 'Erreur lors de la vérification' },

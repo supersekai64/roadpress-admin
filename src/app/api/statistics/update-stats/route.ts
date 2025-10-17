@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
 
     if (!license_key) {
       await DebugLogger.log({
-        category: 'API_USAGE',
-        action: 'STATS_UPDATE_FAILED',
+        category: 'SYNC',
+        action: 'STATS_UPDATE',
         method: 'POST',
         endpoint: '/api/statistics/update-stats',
         status: 'ERROR',
@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
 
     if (!license || license.status !== 'ACTIVE') {
       await DebugLogger.log({
-        category: 'API_USAGE',
-        action: 'STATS_UPDATE_UNAUTHORIZED',
+        category: 'SYNC',
+        action: 'STATS_UPDATE',
         method: 'POST',
         endpoint: '/api/statistics/update-stats',
         status: 'ERROR',
@@ -147,14 +147,14 @@ export async function POST(request: NextRequest) {
 
     // Log du succès
     await DebugLogger.log({
-      category: 'API_USAGE',
+      category: 'SYNC',
       action: 'STATS_UPDATE',
       method: 'POST',
       endpoint: '/api/statistics/update-stats',
       licenseId: license.id,
       clientName: license.clientName,
       status: 'SUCCESS',
-      message: `Stats enregistrées (Emails : ${emailStatsCreated} | SMS : ${smsLogsCreated} dans ${smsStatsCreated} pays)`,
+      message: `Statistiques enregistrées (E-mails : ${emailStatsCreated} | SMS : ${smsLogsCreated} dans ${smsStatsCreated} pays)`,
       requestData: {
         email_stats: emailStatsCreated,
         sms_countries: smsStatsCreated,
@@ -186,12 +186,12 @@ export async function POST(request: NextRequest) {
     
     // Log de l'erreur
     await DebugLogger.log({
-      category: 'API_USAGE',
+      category: 'SYNC',
       action: 'STATS_UPDATE',
       method: 'POST',
       endpoint: '/api/statistics/update-stats',
       status: 'ERROR',
-      message: 'Erreur lors de l\'enregistrement des stats',
+      message: 'Erreur lors de l\'enregistrement des statistiques',
       errorDetails: error instanceof Error ? error.stack : String(error),
       duration: Date.now() - startTime,
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,

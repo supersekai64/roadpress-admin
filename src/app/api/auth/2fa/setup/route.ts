@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth.server';
 import prisma from '@/lib/prisma';
 import { generateTwoFactorSecretAsync, encrypt } from '@/lib/two-factor';
-import { DebugLogger } from '@/lib/debug-logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,20 +52,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Log
-    await DebugLogger.log({
-      category: 'LICENSE',
-      action: 'SETUP_2FA',
-      method: 'POST',
-      endpoint: '/api/auth/2fa/setup',
-      status: 'SUCCESS',
-      message: `Setup 2FA initié pour ${user.email}`,
-      requestData: {
-        userId: user.id,
-        email: user.email,
-      },
-    });
-
     return NextResponse.json({
       success: true,
       qrCodeUrl,
@@ -75,16 +60,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Erreur setup 2FA:', error);
-
-    await DebugLogger.log({
-      category: 'LICENSE',
-      action: 'SETUP_2FA',
-      method: 'POST',
-      endpoint: '/api/auth/2fa/setup',
-      status: 'ERROR',
-      message: 'Erreur setup 2FA',
-      errorDetails: error instanceof Error ? error.message : String(error),
-    });
 
     return NextResponse.json(
       { error: 'Erreur lors du setup 2FA' },

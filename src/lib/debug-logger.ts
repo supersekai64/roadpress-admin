@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 
 // Import des types Prisma générés
-type LogCategory = 'SYNC' | 'PUSH_API' | 'LICENSE' | 'API_USAGE' | 'API_KEYS' | 'POI' | 'AUTH' | 'PRICING' | 'SYSTEM' | 'ERROR';
+type LogCategory = 'SYNC' | 'PUSH_API' | 'LICENSE' | 'API_KEYS' | 'POI' | 'AUTH' | 'SYSTEM' | 'ERROR' | 'SECURITY';
 type LogStatus = 'SUCCESS' | 'WARNING' | 'ERROR' | 'INFO';
 
 interface LogData {
@@ -121,6 +121,7 @@ export class DebugLogger {
 
   /**
    * Log l'utilisation d'une API externe
+   * @deprecated Utiliser DebugLogger.log() avec category: 'SYSTEM' à la place
    */
   static async logApiUsage(data: {
     readonly licenseId?: string;
@@ -134,7 +135,7 @@ export class DebugLogger {
     readonly duration?: number;
   }): Promise<void> {
     await this.log({
-      category: 'API_USAGE',
+      category: 'SYSTEM',
       ...data,
     });
   }
