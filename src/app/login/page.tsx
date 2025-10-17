@@ -33,6 +33,27 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
+        // Vérifier si c'est une erreur 2FA
+        if (result.error.startsWith('2FA_REQUIRED:')) {
+          const userId = result.error.split(':')[1];
+          
+          // Stocker l'ID utilisateur dans un cookie temporaire
+          await fetch('/api/auth/2fa/pending', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId }),
+          });
+
+          // Rediriger vers la page de vérification 2FA avec les credentials
+          // (nécessaires pour se reconnecter après vérification)
+          const params = new URLSearchParams({
+            email,
+            password, // Temporaire en mémoire client, jamais stocké
+          });
+          router.push(`/login/2fa?${params.toString()}`);
+          return;
+        }
+
         setError('Email ou mot de passe invalide');
         setIsLoading(false);
         return;

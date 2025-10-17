@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { authConfig } from './auth.config';
 
@@ -30,6 +31,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            password: true,
+            twoFactorEnabled: true,
+          },
         });
 
         if (!user || !user.password) {
@@ -40,6 +49,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!passwordMatch) {
           return null;
+        }
+
+        // Vérifier si le 2FA a déjà été validé (cookie de vérification)
+        const cookieStore = await cookies();
+        const twoFactorVerified = cookieStore.get('2fa_verified')?.value;
+
+        // Si 2FA activé ET pas encore vérifié : bloquer la connexion
+        if (user.twoFactorEnabled && twoFactorVerified !== user.id) {
+          // Signal spécial : erreur avec code "2FA_REQUIRED"
+          throw new Error('2FA_REQUIRED:' + user.id);
+        }
+
+        // Si 2FA vérifié : nettoyer le cookie et autoriser la connexion
+        if (twoFactorVerified === user.id) {
+          cookieStore.delete('2fa_verified');
         }
 
         return {
