@@ -4,8 +4,115 @@ import { DebugLogger } from '@/lib/debug-logger';
 
 /**
  * Endpoint appelé par le plugin client pour vérifier ET activer une licence
- * POST /api/licenses/verify
+ * POST /api/licenses/verify - Activation/vérification avec site_url
  * Body: { license_key, site_url }
+ * 
+ * GET /api/licenses/verify?license_key=XXX - Vérification simple (sans activation)
+ * Query params: license_key
+ */
+
+/**
+ * GET /api/licenses/verify?license_key=XXX
+ * Vérifier l'état d'une licence sans l'activer
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const license_key = searchParams.get('license_key');
+
+    if (!license_key) {
+      return NextResponse.json(
+        { valid: false, message: 'Clé de licence manquante' },
+        { status: 400 }
+      );
+    }
+
+    const license = await prisma.license.findUnique({
+      where: { licenseKey: license_key },
+    });
+
+    if (!license) {
+      // LOG : Consultation clé invalide
+      await DebugLogger.log({
+        category: 'LICENSE',
+        action: 'CHECK_LICENSE',
+        method: 'GET',
+        endpoint: '/api/licenses/verify',
+        status: 'ERROR',
+        message: `Consultation d'une clé invalide`,
+        requestData: { license_key },
+        errorDetails: 'Licence introuvable',
+      });
+
+      return NextResponse.json(
+        { valid: false, message: 'Licence introuvable' },
+        { status: 404 }
+      );
+    }
+
+    // Vérifier les dates de validité
+    const now = new Date();
+    const endDate = new Date(license.endDate);
+
+    const isExpired = endDate < now;
+
+    // LOG : Consultation réussie
+    await DebugLogger.log({
+      category: 'LICENSE',
+      action: 'CHECK_LICENSE',
+      method: 'GET',
+      endpoint: '/api/licenses/verify',
+      licenseId: license.id,
+      clientName: license.clientName,
+      status: 'SUCCESS',
+      message: `Consultation de licence : ${isExpired ? 'EXPIRÉE' : 'VALIDE'}`,
+      requestData: { license_key },
+      responseData: {
+        status: license.status,
+        isAssociated: license.isAssociated,
+        siteUrl: license.siteUrl,
+        isExpired,
+      },
+    });
+
+    return NextResponse.json({
+      valid: !isExpired,
+      message: isExpired ? 'Licence expirée' : 'Licence valide',
+      license: {
+        key: license.licenseKey,
+        clientName: license.clientName,
+        status: license.status,
+        siteUrl: license.siteUrl,
+        startDate: license.startDate,
+        endDate: license.endDate,
+        isAssociated: license.isAssociated,
+        isExpired,
+      },
+    });
+  } catch (error) {
+    console.error('Erreur consultation licence:', error);
+
+    // LOG : Erreur serveur
+    await DebugLogger.log({
+      category: 'LICENSE',
+      action: 'CHECK_LICENSE',
+      method: 'GET',
+      endpoint: '/api/licenses/verify',
+      status: 'ERROR',
+      message: 'Erreur serveur lors de la consultation',
+      errorDetails: error instanceof Error ? error.message : String(error),
+    });
+
+    return NextResponse.json(
+      { valid: false, message: 'Erreur serveur' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/licenses/verify
+ * Activer/vérifier une licence avec association automatique au domaine
  */
 export async function POST(request: NextRequest) {
   try {

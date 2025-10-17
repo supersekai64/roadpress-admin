@@ -165,6 +165,103 @@ prisma/
 
 ---
 
+## 📊 Référentiel des Actions API (Debug Logs)
+
+Toutes les opérations importantes sont loggées dans la table `debug_logs` et visibles dans **Dashboard → Debug**.
+
+### 🔑 Catégorie : LICENSE
+
+Actions liées à la gestion des licences :
+
+| Action | Statut | Description |
+|--------|--------|-------------|
+| `CREATE_LICENSE` | SUCCESS | Nouvelle licence créée (statut INACTIVE par défaut) |
+| `CREATE_LICENSE` | ERROR | Échec de création (données invalides) |
+| `UPDATE_LICENSE` | SUCCESS | Licence modifiée (nom client, dates, URL, etc.) |
+| `UPDATE_LICENSE` | ERROR | Échec de modification (validation ou BDD) |
+| `DELETE_LICENSE` | SUCCESS | Licence supprimée définitivement |
+| `DELETE_LICENSE` | ERROR | Échec de suppression |
+| `VERIFY_LICENSE` | SUCCESS | Vérification réussie (licence valide et active) |
+| `VERIFY_LICENSE` | WARNING | Licence expirée ou inactive |
+| `VERIFY_LICENSE` | ERROR | Licence introuvable ou clé invalide |
+| `ASSOCIATE_LICENSE` | SUCCESS | URL associée manuellement à une licence |
+| `ASSOCIATE_LICENSE` | ERROR | Échec d'association (URL déjà utilisée) |
+| `DISASSOCIATE_LICENSE` | SUCCESS | Licence dissociée de son URL |
+| `DISASSOCIATE_LICENSE` | ERROR | Échec de dissociation |
+
+**Note** : L'auto-association lors de l'activation est loggée comme `VERIFY_LICENSE` (SUCCESS).
+
+### 🔐 Catégorie : API_KEY
+
+Actions liées aux clés API centralisées :
+
+| Action | Statut | Description |
+|--------|--------|-------------|
+| `PUSH_API_KEYS` | SUCCESS | Clés API distribuées vers un site client WordPress |
+| `PUSH_API_KEYS` | ERROR | Échec de distribution (site injoignable, HTTPS requis) |
+| `FETCH_API_KEYS` | SUCCESS | Site client a récupéré ses clés API |
+| `FETCH_API_KEYS` | ERROR | Échec de récupération (licence invalide) |
+| `UPDATE_API_KEY` | SUCCESS | Clé API modifiée dans le dashboard admin |
+| `UPDATE_API_KEY` | ERROR | Échec de modification |
+
+### 📍 Catégorie : POI
+
+Actions liées aux points d'intérêt (synchronisation depuis sites clients) :
+
+| Action | Statut | Description |
+|--------|--------|-------------|
+| `SYNC_POI` | SUCCESS | POI synchronisés avec succès depuis un site client |
+| `SYNC_POI` | INFO | Aucun nouveau POI à synchroniser |
+| `SYNC_POI` | ERROR | Échec de synchronisation (licence invalide, erreur réseau) |
+| `POI_UPDATE` | SUCCESS | POI existant mis à jour (coordonnées, adresse) |
+| `POI_CREATE` | SUCCESS | Nouveau POI créé |
+| `POI_DELETE` | SUCCESS | POI supprimé |
+
+### 📈 Catégorie : API_USAGE
+
+Actions liées aux statistiques d'usage API (DeepL, OpenAI, Brevo, SMS) :
+
+| Action | Statut | Description |
+|--------|--------|-------------|
+| `STATS_UPDATE` | SUCCESS | Stats API enregistrées (emails, SMS par pays) |
+| `STATS_UPDATE` | ERROR | Échec d'enregistrement des stats |
+| `LOGS_UPDATE` | SUCCESS | Logs détaillés enregistrés (emails individuels, SMS) |
+| `LOGS_UPDATE` | ERROR | Échec d'enregistrement des logs |
+| `API_USAGE_UPDATE` | SUCCESS | Stats DeepL/OpenAI enregistrées (tokens, coûts) |
+| `API_USAGE_UPDATE` | ERROR | Échec d'enregistrement |
+
+### 📊 Champs des Debug Logs
+
+Chaque log contient :
+
+- **category** : LICENSE, API_KEY, POI, API_USAGE
+- **action** : Nom de l'action (voir tableaux ci-dessus)
+- **status** : SUCCESS, INFO, WARNING, ERROR
+- **method** : GET, POST, PUT, DELETE (si API REST)
+- **endpoint** : Route API appelée (ex: `/api/licenses/verify`)
+- **licenseId** : ID de la licence concernée (si applicable)
+- **clientName** : Nom du client concerné (si applicable)
+- **message** : Description courte de l'événement
+- **requestData** : Données envoyées (JSON)
+- **responseData** : Données retournées (JSON)
+- **errorDetails** : Stack trace ou détail de l'erreur (si ERROR)
+- **duration** : Temps d'exécution en ms (si disponible)
+- **ipAddress** : IP du client (si disponible)
+- **userAgent** : User-agent du client (si disponible)
+- **timestamp** : Date/heure de l'événement
+
+### 🔍 Filtrage dans Dashboard → Debug
+
+Vous pouvez filtrer les logs par :
+- **Catégorie** : LICENSE, API_KEY, POI, API_USAGE
+- **Label** : LICENCE, API KEY, POI, SYNCHRONISATION, USAGE API
+- **Statut** : SUCCESS, INFO, WARNING, ERROR
+- **Client** : Nom du client
+- **Période** : Date de début/fin
+- **Recherche** : Texte libre dans message/action
+
+---
+
 ## Schéma de base de données
 
 ### Tables principales

@@ -30,6 +30,8 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -515,18 +517,15 @@ export default function DebugClient() {
 
   // Fonction de suppression d'un log individuel
   const [deleting, setDeleting] = useState<string | null>(null);
-  const deleteLog = async (logId: string) => {
-    if (deleting) return;
-    
-    const confirmed = window.confirm(
-      'Êtes-vous sûr de vouloir supprimer ce log ?'
-    );
-    
-    if (!confirmed) return;
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [logToDelete, setLogToDelete] = useState<DebugLog | null>(null);
+
+  const deleteLog = async () => {
+    if (!logToDelete || deleting) return;
     
     try {
-      setDeleting(logId);
-      const response = await fetch(`/api/debug/logs/${logId}`, {
+      setDeleting(logToDelete.id);
+      const response = await fetch(`/api/debug/logs/${logToDelete.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -539,6 +538,10 @@ export default function DebugClient() {
       
       // Recharger les logs
       await loadLogs();
+      
+      // Fermer la modal
+      setDeleteDialogOpen(false);
+      setLogToDelete(null);
     } catch (error) {
       console.error('Erreur suppression:', error);
       setError(error instanceof Error ? error.message : 'Erreur suppression');
@@ -1101,10 +1104,13 @@ export default function DebugClient() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
-                                  onClick={() => deleteLog(log.id)}
+                                  onClick={() => {
+                                    setLogToDelete(log);
+                                    setDeleteDialogOpen(true);
+                                  }}
                                   disabled={deleting === log.id}
                                 >
-                                  {deleting === log.id ? 'Suppression...' : 'Supprimer'}
+                                  Supprimer
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -1322,6 +1328,65 @@ export default function DebugClient() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Modal de confirmation de suppression */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le log</DialogTitle>
+            <DialogDescription className="pt-4 text-base">
+              Êtes-vous sûr de vouloir supprimer ce log ? Cette action est
+              irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          {logToDelete && (
+            <div className="py-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Badge variant={
+                  logToDelete.category === 'LICENSE' ? 'default' :
+                  logToDelete.category === 'API_KEY' ? 'secondary' :
+                  logToDelete.category === 'POI' ? 'outline' :
+                  'default'
+                }>
+                  {logToDelete.category}
+                </Badge>
+                <span className="text-sm font-medium">{logToDelete.action}</span>
+              </div>
+              {logToDelete.clientName && (
+                <p className="text-sm">
+                  <strong>Client :</strong> {logToDelete.clientName}
+                </p>
+              )}
+              {logToDelete.message && (
+                <p className="text-sm text-muted-foreground">
+                  {logToDelete.message}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(logToDelete.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: fr })}
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setLogToDelete(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={deleteLog}
+              disabled={deleting !== null}
+            >
+              {deleting ? 'Suppression...' : 'Supprimer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
