@@ -39,7 +39,7 @@ export function Header() {
         <ThemeToggle />
         <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
           <Link href="/dashboard/settings/2fa">
-            <Shield className="h-[1.2rem] w-[1.2rem]" />
+            <Shield className="h-5 w-5" />
             <span className="sr-only">Sécurité 2FA</span>
           </Link>
         </Button>
