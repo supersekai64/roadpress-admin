@@ -1225,38 +1225,10 @@ export default function DebugClient() {
           <DialogHeader>
             <DialogTitle>Supprimer le log</DialogTitle>
             <DialogDescription className="pt-4 text-base">
-              Êtes-vous sûr de vouloir supprimer ce log ? Cette action est
+              Êtes-vous sûr de vouloir supprimer ce log ?<br />Cette action est
               irréversible.
             </DialogDescription>
           </DialogHeader>
-          {logToDelete && (
-            <div className="py-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <Badge variant={
-                  logToDelete.category === 'LICENSE' ? 'default' :
-                  logToDelete.category === 'API_KEY' ? 'secondary' :
-                  logToDelete.category === 'POI' ? 'outline' :
-                  'default'
-                }>
-                  {logToDelete.category}
-                </Badge>
-                <span className="text-sm font-medium">{logToDelete.action}</span>
-              </div>
-              {logToDelete.clientName && (
-                <p className="text-sm">
-                  <strong>Client :</strong> {logToDelete.clientName}
-                </p>
-              )}
-              {logToDelete.message && (
-                <p className="text-sm text-muted-foreground">
-                  {logToDelete.message}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                {format(new Date(logToDelete.timestamp), 'dd/MM/yyyy HH:mm:ss', { locale: fr })}
-              </p>
-            </div>
-          )}
           <DialogFooter>
             <Button
               variant="outline"
