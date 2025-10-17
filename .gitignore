@@ -53,3 +53,4 @@ next-env.d.ts
 
 # scripts with sensitive data
 scripts/create-admin.ts
+scripts/test-security.ps1

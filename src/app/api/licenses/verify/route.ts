@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { DebugLogger } from '@/lib/debug-logger';
+import { checkRateLimit, RateLimitPresets, getClientIdentifier } from '@/lib/rate-limit';
 
 /**
  * Endpoint appelé par le plugin client pour vérifier ET activer une licence
@@ -9,6 +10,9 @@ import { DebugLogger } from '@/lib/debug-logger';
  * 
  * GET /api/licenses/verify?license_key=XXX - Vérification simple (sans activation)
  * Query params: license_key
+ * 
+ * SÉCURITÉ :
+ * - Rate limiting : 30 req/min par IP
  */
 
 /**
@@ -17,6 +21,42 @@ import { DebugLogger } from '@/lib/debug-logger';
  */
 export async function GET(request: NextRequest) {
   try {
+    // RATE LIMITING : 30 req/min par IP
+    const clientId = getClientIdentifier(request);
+    const rateLimitResult = checkRateLimit(clientId, RateLimitPresets.HIGH);
+    
+    if (!rateLimitResult.success) {
+      const resetInSeconds = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
+      
+      await DebugLogger.log({
+        category: 'LICENSE',
+        action: 'CHECK_LICENSE',
+        method: 'GET',
+        endpoint: '/api/licenses/verify',
+        status: 'WARNING',
+        message: 'Rate limit dépassé',
+        requestData: {
+          clientId,
+          limit: rateLimitResult.limit,
+          resetIn: `${resetInSeconds}s`,
+        },
+        errorDetails: `Trop de requêtes (${rateLimitResult.limit}/min)`,
+      });
+      
+      return NextResponse.json(
+        { 
+          valid: false, 
+          message: `Trop de requêtes. Réessayez dans ${resetInSeconds} secondes.`,
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': resetInSeconds.toString(),
+          },
+        }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const license_key = searchParams.get('license_key');
 
@@ -118,6 +158,42 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { license_key, site_url } = body;
+
+    // 🔐 RATE LIMITING : 30 requêtes/min par IP (HIGH priority)
+    const clientId = getClientIdentifier(request);
+    const rateLimitResult = await checkRateLimit(clientId, RateLimitPresets.HIGH);
+
+    if (!rateLimitResult.success) {
+      const resetInSeconds = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
+
+      await DebugLogger.log({
+        category: 'LICENSE',
+        action: 'VERIFY_LICENSE',
+        method: 'POST',
+        endpoint: '/api/licenses/verify',
+        status: 'WARNING',
+        message: 'RATE LIMIT DÉPASSÉ (POST)',
+        requestData: { clientId, license_key, site_url },
+        errorDetails: `Limite: ${rateLimitResult.limit} req/min, Reset dans: ${resetInSeconds}s`,
+      });
+
+      return NextResponse.json(
+        {
+          valid: false,
+          message: 'Trop de tentatives. Veuillez réessayer plus tard.',
+          error: 'RATE_LIMIT_EXCEEDED',
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+            'Retry-After': resetInSeconds.toString(),
+          },
+        }
+      );
+    }
 
     if (!license_key) {
       return NextResponse.json(

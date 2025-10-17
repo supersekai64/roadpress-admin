@@ -26,6 +26,12 @@ model User {
   password  String
   name      String?
   role      String   @default("admin")
+  
+  // 🔐 Two-Factor Authentication (2FA)
+  twoFactorEnabled Boolean @default(false) @map("two_factor_enabled")
+  twoFactorSecret  String? @map("two_factor_secret") // Encrypted TOTP secret
+  backupCodes      String? @map("backup_codes") // JSON array of encrypted backup codes
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

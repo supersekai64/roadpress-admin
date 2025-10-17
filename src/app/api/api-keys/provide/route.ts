@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { DebugLogger } from '@/lib/debug-logger';
+import { checkRateLimit, RateLimitPresets, getClientIdentifier } from '@/lib/rate-limit';
+import { detectFailedAccess, detectRateLimitViolation, detectUnusualHourAccess } from '@/lib/security-monitor';
 
 /**
  * Endpoint SÉCURISÉ pour fournir les clés API au plugin client
  * GET /api/api-keys/provide?license_key=XXXX&site_url=https://example.com
  * 
  * SÉCURITÉ :
+ * - Rate limiting : 10 req/min par licence
  * - Vérifie que la licence est ACTIVE
  * - Vérifie que la licence EST ASSOCIÉE à un domaine
  * - Vérifie que le site_url correspond EXACTEMENT au domaine autorisé
@@ -20,6 +23,56 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const licenseKey = searchParams.get('license_key');
     const siteUrl = searchParams.get('site_url');
+
+    // RATE LIMITING : 10 req/min par licence
+    if (licenseKey) {
+      const rateLimitResult = checkRateLimit(licenseKey, RateLimitPresets.CRITICAL);
+      
+      if (!rateLimitResult.success) {
+        const resetInSeconds = Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
+        const clientId = getClientIdentifier(request);
+        
+        // MONITORING : Violation rate limit
+        await detectRateLimitViolation(
+          clientId,
+          '/api/api-keys/provide',
+          `Licence: ${licenseKey}, Limite: ${rateLimitResult.limit}/min`
+        );
+        
+        await DebugLogger.log({
+          category: 'API_KEYS',
+          action: 'PROVIDE_KEYS',
+          method: 'GET',
+          endpoint: '/api/api-keys/provide',
+          status: 'WARNING',
+          message: 'Rate limit dépassé',
+          requestData: {
+            license_key: licenseKey,
+            site_url: siteUrl,
+            limit: rateLimitResult.limit,
+            resetIn: `${resetInSeconds}s`,
+          },
+          errorDetails: `Trop de requêtes (${rateLimitResult.limit}/min)`,
+        });
+        
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: `Trop de requêtes. Réessayez dans ${resetInSeconds} secondes.`,
+            retryAfter: resetInSeconds,
+          },
+          { 
+            status: 429,
+            headers: {
+              'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+              'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+              'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+              'Retry-After': resetInSeconds.toString(),
+            },
+          }
+        );
+      }
+    }
 
     // VALIDATION : Clé de licence obligatoire
     if (!licenseKey) {
@@ -65,6 +118,15 @@ export async function GET(request: NextRequest) {
     });
 
     if (!license) {
+      const clientId = getClientIdentifier(request);
+      
+      // MONITORING : Tentative avec clé invalide
+      await detectFailedAccess(
+        clientId,
+        '/api/api-keys/provide',
+        `Licence invalide : ${licenseKey}`
+      );
+      
       await DebugLogger.log({
         category: 'API_KEYS',
         action: 'PROVIDE_KEYS',
@@ -84,6 +146,15 @@ export async function GET(request: NextRequest) {
 
     // SÉCURITÉ : Vérifier que la licence est ACTIVE
     if (license.status !== 'ACTIVE') {
+      const clientId = getClientIdentifier(request);
+      
+      // MONITORING : Tentative avec licence non-ACTIVE
+      await detectFailedAccess(
+        clientId,
+        '/api/api-keys/provide',
+        `Licence ${license.status}: ${licenseKey}`
+      );
+      
       await DebugLogger.log({
         category: 'API_KEYS',
         action: 'PROVIDE_KEYS',
@@ -126,6 +197,15 @@ export async function GET(request: NextRequest) {
 
     // SÉCURITÉ CRITIQUE : Vérifier que le domaine correspond EXACTEMENT
     if (license.siteUrl !== siteUrl) {
+      const clientId = getClientIdentifier(request);
+      
+      // MONITORING : Tentative d'accès depuis mauvais domaine
+      await detectFailedAccess(
+        clientId,
+        '/api/api-keys/provide',
+        `Domaine non autorisé : ${siteUrl} (autorisé: ${license.siteUrl})`
+      );
+      
       await DebugLogger.log({
         category: 'API_KEYS',
         action: 'PROVIDE_KEYS',
@@ -193,6 +273,14 @@ export async function GET(request: NextRequest) {
     });
 
     const responseTime = Date.now() - startTime;
+    const clientId = getClientIdentifier(request);
+
+    // MONITORING : Détection accès heure inhabituelle
+    await detectUnusualHourAccess(
+      clientId,
+      '/api/api-keys/provide',
+      `Accès réussi depuis ${siteUrl} avec licence ${licenseKey}`
+    );
 
     // LOG : Accès autorisé
     await DebugLogger.log({

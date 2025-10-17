@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { auth } from '@/lib/auth.server';
+import { DebugLogger } from '@/lib/debug-logger';
 
 const updateKeySchema = z.object({
   key: z.string().min(1, 'La clé API est requise'),
@@ -69,6 +70,11 @@ export async function PUT(
     const body = await request.json();
     const validatedData = updateKeySchema.parse(body);
 
+    // Récupérer l'ancienne clé avant modification (pour logging)
+    const existingKey = await prisma.apiKey.findUnique({
+      where: { service },
+    });
+
     // Utiliser upsert pour créer ou mettre à jour la clé
     const apiKey = await prisma.apiKey.upsert({
       where: { service },
@@ -82,6 +88,27 @@ export async function PUT(
         key: validatedData.key,
         isActive: validatedData.isActive ?? true,
         lastPush: new Date(),
+      },
+    });
+
+    // LOG : Tracer la modification de clé API
+    await DebugLogger.log({
+      category: 'API_KEYS',
+      action: 'UPDATE_API_KEY',
+      method: 'PUT',
+      endpoint: `/api/api-keys/${service}`,
+      status: 'SUCCESS',
+      message: `Clé API modifiée : ${service}`,
+      requestData: {
+        service,
+        user: session.user?.email || session.user?.name || 'unknown',
+        userId: session.user?.id || 'unknown',
+        wasActive: existingKey?.isActive ?? false,
+        nowActive: apiKey.isActive,
+        isNewKey: !existingKey,
+        oldKeyMasked: existingKey ? maskApiKey(existingKey.key) : 'N/A',
+        newKeyMasked: maskApiKey(validatedData.key),
+        timestamp: new Date().toISOString(),
       },
     });
 
@@ -101,6 +128,24 @@ export async function PUT(
     }
 
     console.error('Erreur PUT /api/api-keys/[service]:', error);
+
+    // LOG : Erreur lors de la modification
+    const { service } = await params;
+    const session = await auth();
+    await DebugLogger.log({
+      category: 'API_KEYS',
+      action: 'UPDATE_API_KEY',
+      method: 'PUT',
+      endpoint: `/api/api-keys/${service}`,
+      status: 'ERROR',
+      message: `Échec modification clé API : ${service}`,
+      requestData: {
+        service,
+        user: session?.user?.email || 'unknown',
+      },
+      errorDetails: error instanceof Error ? error.message : String(error),
+    });
+
     return NextResponse.json(
       { error: 'Erreur lors de la modification de la clé' },
       { status: 500 }
