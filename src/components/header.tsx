@@ -36,10 +36,10 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-1">
-        <ThemeToggle />
+        {/* <ThemeToggle /> */}
         <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
           <Link href="/dashboard/settings/2fa">
-            <Shield className="h-5 w-5" />
+            <Shield />
             <span className="sr-only">Sécurité 2FA</span>
           </Link>
         </Button>
