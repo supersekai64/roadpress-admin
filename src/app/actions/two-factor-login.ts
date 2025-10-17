@@ -72,6 +72,7 @@ export async function verifyTwoFactorAndLogin(
           category: 'AUTH',
           action: 'VERIFY_2FA_LOGIN',
           status: 'SUCCESS',
+          label: 'AUTHENTIFICATION',
           message: 'Connexion avec backup code',
           requestData: {
             userId,
@@ -87,6 +88,7 @@ export async function verifyTwoFactorAndLogin(
           category: 'AUTH',
           action: 'VERIFY_2FA_LOGIN',
           status: 'SUCCESS',
+          label: 'AUTHENTIFICATION',
           message: 'Connexion avec TOTP',
           requestData: { userId },
         });
@@ -98,6 +100,7 @@ export async function verifyTwoFactorAndLogin(
         category: 'AUTH',
         action: 'VERIFY_2FA_LOGIN',
         status: 'WARNING',
+        label: 'AUTHENTIFICATION',
         message: 'Code 2FA invalide',
         requestData: { userId, isBackupCode },
       });
@@ -126,6 +129,7 @@ export async function verifyTwoFactorAndLogin(
       category: 'AUTH',
       action: 'VERIFY_2FA_LOGIN',
       status: 'ERROR',
+      label: 'AUTHENTIFICATION',
       message: 'Erreur serveur',
       errorDetails: error instanceof Error ? error.message : String(error),
     });

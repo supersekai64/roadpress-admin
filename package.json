@@ -52,7 +52,9 @@
     "env:production": "node scripts/setup-env.js production && pnpm prisma generate",
     "secret:generate": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-nextauth-secret.ps1",
     "check:prod": "powershell -ExecutionPolicy Bypass -File ./scripts/check-prod-config.ps1",
-    "logs:inventory": "npx ts-node scripts/generate-logs-inventory.ts"
+    "logs:inventory": "npx ts-node scripts/generate-logs-inventory.ts",
+    "logs:check-labels": "npx ts-node scripts/find-logs-without-label.ts",
+    "logs:apply-labels": "npx ts-node scripts/apply-labels.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
@@ -117,6 +119,7 @@
     "cross-env": "^10.1.0",
     "eslint": "^9.37.0",
     "eslint-config-next": "^15.5.4",
+    "exceljs": "^4.4.0",
     "fast-glob": "^3.3.3",
     "glob": "^11.0.3",
     "postcss": "^8.5.6",

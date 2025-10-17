@@ -170,6 +170,7 @@ Cet email a été envoyé automatiquement par le système de monitoring de sécu
       method: 'POST',
       endpoint: 'Brevo API',
       status: 'SUCCESS',
+      label: 'SÉCURITÉ',
       message: `Alerte sécurité envoyée : ${event.type}`,
       requestData: {
         eventType: event.type,
@@ -187,6 +188,7 @@ Cet email a été envoyé automatiquement par le système de monitoring de sécu
       method: 'POST',
       endpoint: 'Brevo API',
       status: 'ERROR',
+      label: 'SÉCURITÉ',
       message: `Échec envoi alerte sécurité : ${event.type}`,
       errorDetails: error instanceof Error ? error.message : String(error),
     });
@@ -319,6 +321,7 @@ export async function analyzeSecurityPatterns(): Promise<void> {
     method: 'GET',
     endpoint: 'Security Monitor',
     status: 'SUCCESS',
+    label: 'SÉCURITÉ',
     message: 'Analyse sécurité périodique',
     requestData: {
       period: 'last_hour',

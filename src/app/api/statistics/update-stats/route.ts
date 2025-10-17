@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         endpoint: '/api/statistics/update-stats',
         status: 'ERROR',
+        label: 'STATISTIQUES',
         message: 'Clé de licence manquante',
         requestData: {
           has_email_stats: email_stats !== undefined,
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         endpoint: '/api/statistics/update-stats',
         status: 'ERROR',
+        label: 'STATISTIQUES',
         message: 'Licence invalide ou inactive',
         requestData: {
           license_key,
@@ -154,6 +156,7 @@ export async function POST(request: NextRequest) {
       licenseId: license.id,
       clientName: license.clientName,
       status: 'SUCCESS',
+      label: 'STATISTIQUES',
       message: `Statistiques enregistrées (E-mails : ${emailStatsCreated} | SMS : ${smsLogsCreated} dans ${smsStatsCreated} pays)`,
       requestData: {
         email_stats: emailStatsCreated,
@@ -191,6 +194,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       endpoint: '/api/statistics/update-stats',
       status: 'ERROR',
+      label: 'STATISTIQUES',
       message: 'Erreur lors de l\'enregistrement des statistiques',
       errorDetails: error instanceof Error ? error.stack : String(error),
       duration: Date.now() - startTime,

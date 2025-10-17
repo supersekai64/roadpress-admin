@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         endpoint: '/api/statistics/update-logs',
         status: 'ERROR',
+        label: 'STATISTIQUES',
         message: 'Clé de licence manquante',
         requestData: { 
           has_email_logs: !!email_logs, 
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         endpoint: '/api/statistics/update-logs',
         status: 'ERROR',
+        label: 'STATISTIQUES',
         message: 'Licence invalide ou inactive',
         requestData: { 
           license_key,
@@ -113,6 +115,7 @@ export async function POST(request: NextRequest) {
       licenseId: license.id,
       clientName: license.clientName,
       status: 'SUCCESS',
+      label: 'STATISTIQUES',
       message: `Logs enregistrés (E-mails : ${emailLogsCreated} | SMS : ${smsLogsCreated})`,
       requestData: {
         email_logs_count: emailLogsCreated,
@@ -141,6 +144,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       endpoint: '/api/statistics/update-logs',
       status: 'ERROR',
+      label: 'STATISTIQUES',
       message: 'Erreur lors de l\'enregistrement des logs',
       errorDetails: error instanceof Error ? error.stack : String(error),
       duration: Date.now() - startTime,

@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
         licenseId: license.id,
         licenseKey: license.licenseKey,
         status: license.status,
+        label: 'LICENCE',
         startDate: license.startDate,
         endDate: license.endDate,
         siteUrl: license.siteUrl,
@@ -157,6 +158,7 @@ export async function POST(request: NextRequest) {
         method: 'POST',
         endpoint: '/api/licenses',
         status: 'ERROR',
+        label: 'LICENCE',
         message: 'Données invalides pour la création de licence',
         errorDetails: JSON.stringify(error.issues),
       });
@@ -176,6 +178,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       endpoint: '/api/licenses',
       status: 'ERROR',
+      label: 'LICENCE',
       message: 'Erreur lors de la création de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
     });

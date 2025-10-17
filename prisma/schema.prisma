@@ -437,6 +437,7 @@ model DebugLog {
   licenseId   String?     @map("license_id")
   clientName  String?     @map("client_name")
   status      LogStatus   @default(SUCCESS)
+  label       String?     // Label pour regroupement visuel (ex: "LICENCE", "STATISTIQUES")
   message     String?     // Description or error message
   requestData Json?       @map("request_data")    // Input data
   responseData Json?      @map("response_data")   // Output/response data
@@ -454,6 +455,7 @@ model DebugLog {
   @@index([timestamp])
   @@index([licenseId])
   @@index([action])
+  @@index([label])
   @@map("debug_logs")
 }
 

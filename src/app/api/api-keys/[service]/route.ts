@@ -98,6 +98,7 @@ export async function PUT(
       method: 'PUT',
       endpoint: `/api/api-keys/${service}`,
       status: 'SUCCESS',
+      label: 'CLÉS API',
       message: `Clé API modifiée : ${service}`,
       requestData: {
         service,
@@ -138,6 +139,7 @@ export async function PUT(
       method: 'PUT',
       endpoint: `/api/api-keys/${service}`,
       status: 'ERROR',
+      label: 'CLÉS API',
       message: `Échec modification clé API : ${service}`,
       requestData: {
         service,

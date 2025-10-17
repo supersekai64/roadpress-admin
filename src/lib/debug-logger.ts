@@ -12,6 +12,7 @@ interface LogData {
   readonly licenseId?: string;
   readonly clientName?: string;
   readonly status?: LogStatus;
+  readonly label?: string;
   readonly message?: string;
   readonly requestData?: any;
   readonly responseData?: any;
@@ -46,6 +47,7 @@ export class DebugLogger {
           licenseId: data.licenseId,
           clientName: data.clientName,
           status: data.status || 'SUCCESS',
+          label: data.label,
           message: data.message,
           requestData: data.requestData ? JSON.parse(JSON.stringify(data.requestData)) : null,
           responseData: data.responseData ? JSON.parse(JSON.stringify(data.responseData)) : null,
@@ -115,27 +117,6 @@ export class DebugLogger {
   }): Promise<void> {
     await this.log({
       category: 'LICENSE',
-      ...data,
-    });
-  }
-
-  /**
-   * Log l'utilisation d'une API externe
-   * @deprecated Utiliser DebugLogger.log() avec category: 'SYSTEM' à la place
-   */
-  static async logApiUsage(data: {
-    readonly licenseId?: string;
-    readonly clientName?: string;
-    readonly action: string;
-    readonly endpoint?: string;
-    readonly requestData?: any;
-    readonly responseData?: any;
-    readonly status?: LogStatus;
-    readonly message?: string;
-    readonly duration?: number;
-  }): Promise<void> {
-    await this.log({
-      category: 'SYSTEM',
       ...data,
     });
   }

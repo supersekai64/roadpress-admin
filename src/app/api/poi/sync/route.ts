@@ -45,6 +45,7 @@ export async function POST(request: Request) {
         category: 'POI',
         action: 'SYNC_POI',
         status: 'ERROR',
+        label: 'POI',
         message: 'Tentative de synchronisation sans clé de licence',
         requestData: { reason: 'Header X-License-Key manquant' },
       });
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
         category: 'POI',
         action: 'SYNC_POI',
         status: 'ERROR',
+        label: 'POI',
         message: 'Tentative de synchronisation avec clé invalide',
         requestData: { licenseKeyPrefix: `${licenseKey.substring(0, 8)}...` },
       });
@@ -84,6 +86,7 @@ export async function POST(request: Request) {
         clientName: license.clientName,
         message: 'Tentative de synchronisation avec licence inactive',
         requestData: { status: license.status },
+        label: 'POI',
       });
 
       return NextResponse.json(
@@ -103,6 +106,7 @@ export async function POST(request: Request) {
         category: 'POI',
         action: 'SYNC_POI',
         status: 'ERROR',
+        label: 'POI',
         licenseId,
         clientName,
         message: 'Format de données invalide',
@@ -121,6 +125,7 @@ export async function POST(request: Request) {
         category: 'POI',
         action: 'SYNC_POI',
         status: 'INFO',
+        label: 'POI',
         licenseId,
         clientName,
         message: 'Tentative de synchronisation avec tableau vide',
@@ -327,6 +332,7 @@ export async function POST(request: Request) {
       category: 'POI',
       action: 'SYNC_POI',
       status: 'SUCCESS',
+      label: 'POI',
       licenseId,
       clientName,
       message: `Synchronisation de ${pluralize(pois.length, 'POI')} et ${pluralize(visits?.length || 0, 'visite')}`,
@@ -353,6 +359,7 @@ export async function POST(request: Request) {
       category: 'POI',
       action: 'SYNC_POI',
       status: 'ERROR',
+      label: 'POI',
       licenseId,
       clientName,
       message: 'Erreur serveur lors de la synchronisation des POI',

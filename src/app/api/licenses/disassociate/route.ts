@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       licenseId: license.id,
       clientName: license.clientName,
       status: 'SUCCESS',
+      label: 'LICENCE',
       message: `Licence désassociée avec succès (ancienne URL : ${license.siteUrl || 'aucune'})`,
       requestData: {
         license_key,
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       endpoint: '/api/licenses/disassociate',
       status: 'ERROR',
+      label: 'LICENCE',
       message: 'Erreur lors de la désassociation de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
     });

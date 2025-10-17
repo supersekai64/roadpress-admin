@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       licenseId: license.id,
       clientName: license.clientName,
       status: 'SUCCESS',
+      label: 'LICENCE',
       message: 'Licence associée avec succès',
       requestData: {
         license_key,
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       endpoint: '/api/licenses/update',
       status: 'ERROR',
+      label: 'LICENCE',
       message: 'Erreur lors de l\'association de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
     });

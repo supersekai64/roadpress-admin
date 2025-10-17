@@ -153,6 +153,7 @@ export async function PUT(
         licenseId: license.id,
         licenseKey: license.licenseKey,
         status: license.status,
+        label: 'LICENCE',
         clientName: license.clientName,
       },
     });
@@ -167,6 +168,7 @@ export async function PUT(
         method: 'PUT',
         endpoint: `/api/licenses/${(await params).id}`,
         status: 'ERROR',
+        label: 'LICENCE',
         message: 'Données invalides pour la modification de licence',
         errorDetails: JSON.stringify(error.issues),
       });
@@ -186,6 +188,7 @@ export async function PUT(
       method: 'PUT',
       endpoint: `/api/licenses/${(await params).id}`,
       status: 'ERROR',
+      label: 'LICENCE',
       message: 'Erreur lors de la modification de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
     });
@@ -243,6 +246,7 @@ export async function DELETE(
           licenseKey: existingLicense.licenseKey,
           clientName: existingLicense.clientName,
           status: existingLicense.status,
+          label: 'LICENCE',
           startDate: existingLicense.startDate,
           endDate: existingLicense.endDate,
           siteUrl: existingLicense.siteUrl,
@@ -265,6 +269,7 @@ export async function DELETE(
       method: 'DELETE',
       endpoint: `/api/licenses/${(await params).id}`,
       status: 'ERROR',
+      label: 'LICENCE',
       message: 'Erreur lors de la suppression de la licence',
       errorDetails: error instanceof Error ? error.message : String(error),
     });
