@@ -87,6 +87,7 @@ export async function GET(request: NextRequest) {
         message: 'Tentative d\'accès sans clé de licence',
         requestData: { siteUrl },
         errorDetails: 'license_key manquant',
+        duration: Date.now() - startTime,
       });
 
       // Message générique
@@ -108,6 +109,7 @@ export async function GET(request: NextRequest) {
         message: 'Tentative d\'accès sans domaine',
         requestData: { licenseKey },
         errorDetails: 'site_url manquant',
+        duration: Date.now() - startTime,
       });
 
       // Message générique
@@ -142,6 +144,7 @@ export async function GET(request: NextRequest) {
         message: 'Tentative d\'accès avec clé invalide',
         requestData: { licenseKey, siteUrl },
         errorDetails: 'Licence introuvable',
+        duration: Date.now() - startTime,
       });
 
       // Message générique
@@ -174,6 +177,7 @@ export async function GET(request: NextRequest) {
         message: 'Tentative d\'accès avec licence non active',
         requestData: { licenseKey, siteUrl, licenseStatus: license.status },
         errorDetails: `Statut de licence non autorisé : ${license.status}`,
+        duration: Date.now() - startTime,
       });
 
       // Message générique
@@ -197,6 +201,7 @@ export async function GET(request: NextRequest) {
         message: 'Tentative d\'accès avec licence non associée',
         requestData: { licenseKey, siteUrl, isAssociated: license.isAssociated },
         errorDetails: 'Licence non associée à un domaine',
+        duration: Date.now() - startTime,
       });
 
       // Message générique
@@ -233,6 +238,7 @@ export async function GET(request: NextRequest) {
           authorizedUrl: license.siteUrl,
         },
         errorDetails: 'URL demandée ne correspond pas à l\'URL autorisée',
+        duration: Date.now() - startTime,
       });
 
       // Message générique
@@ -266,6 +272,7 @@ export async function GET(request: NextRequest) {
           endDate: license.endDate,
         },
         errorDetails: `Licence expirée le ${license.endDate}`,
+        duration: Date.now() - startTime,
       });
 
       // Message générique
@@ -308,10 +315,10 @@ export async function GET(request: NextRequest) {
       status: 'SUCCESS',
       label: 'CLÉS API',
       message: 'Clés API fournies avec succès',
+      duration: responseTime,
       requestData: {
         licenseKey,
         siteUrl,
-        responseTime: `${responseTime}ms`,
       },
       responseData: {
         keysProvided: Object.keys(keys),
@@ -341,6 +348,7 @@ export async function GET(request: NextRequest) {
       label: 'CLÉS API',
       message: 'Erreur serveur lors de la fourniture des clés API',
       errorDetails: error instanceof Error ? error.message : String(error),
+      duration: Date.now() - startTime,
     });
 
     return NextResponse.json(

@@ -672,13 +672,13 @@ export default function DebugClient() {
               <div className="mb-4 space-y-2">
                 <Label htmlFor="search">Recherche globale</Label>
                 <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="search"
                     placeholder="Rechercher dans tous les champs..."
                     value={currentFilters.search}
                     onChange={(e) => updateFilter('search', e.target.value)}
-                    className="pl-8"
+                    className="pl-9"
                   />
                 </div>
               </div>
