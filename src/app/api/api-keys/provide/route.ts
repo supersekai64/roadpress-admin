@@ -307,7 +307,7 @@ export async function GET(request: NextRequest) {
       clientName: license.clientName,
       status: 'SUCCESS',
       label: 'CLÉS API',
-      message: `Clés API fournies avec succès pour ${siteUrl}`,
+      message: 'Clés API fournies avec succès',
       requestData: {
         licenseKey,
         siteUrl,

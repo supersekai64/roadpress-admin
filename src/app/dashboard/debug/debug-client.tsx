@@ -986,13 +986,6 @@ export default function DebugClient() {
                                   Voir détails
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(JSON.stringify(log, null, 2));
-                                  }}
-                                >
-                                  Copier JSON
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
                                   onClick={() => {
                                     setLogToDelete(log);

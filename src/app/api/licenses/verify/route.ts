@@ -102,27 +102,6 @@ export async function GET(request: NextRequest) {
 
     const isExpired = endDate < now;
 
-    // LOG : Consultation réussie
-    await DebugLogger.log({
-      category: 'LICENSE',
-      action: 'CHECK_LICENSE',
-      method: 'GET',
-      endpoint: '/api/licenses/verify',
-      licenseId: license.id,
-      clientName: license.clientName,
-      status: 'INFO',
-      message: `Consultation de licence : ${isExpired ? 'expirée' : 'valide'}`,
-      requestData: { license_key },
-      responseData: {
-        status: license.status,
-        label: 'LICENCE',
-        isAssociated: license.isAssociated,
-        siteUrl: license.siteUrl,
-        isExpired,
-      },
-      duration: Date.now() - startTime,
-    });
-
     return NextResponse.json({
       valid: !isExpired,
       message: isExpired ? 'Licence expirée' : 'Licence valide',
@@ -376,7 +355,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Licence déjà activée sur ce domaine - vérification standard
     // LOG : Vérification réussie (licence déjà active)
     await DebugLogger.log({
       category: 'LICENSE',
@@ -387,7 +365,7 @@ export async function POST(request: NextRequest) {
       clientName: license.clientName,
       status: 'SUCCESS',
       label: 'LICENCE',
-      message: `Vérification réussie pour ${site_url}`,
+      message: 'Vérification de licence réussie',
       requestData: {
         license_key,
         site_url,
