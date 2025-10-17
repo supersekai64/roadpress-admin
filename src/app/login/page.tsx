@@ -112,7 +112,7 @@ export default function LoginPage() {
             Connectez-vous pour accéder au tableau de bord
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Adresse e-mail</Label>

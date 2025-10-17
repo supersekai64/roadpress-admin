@@ -413,6 +413,26 @@ await DebugLogger.log({
 - **Security guide** : `SECURITY-GUIDE.md`
 - **OWASP API Top 10** : https://owasp.org/www-project-api-security/
 
+### 📊 Inventaire des logs
+
+Un inventaire complet de tous les logs possibles est disponible :
+
+- **Fichier Excel** : `roadpress-logs-inventory.xlsx` (à la racine)
+- **Script génération** : `scripts/generate-logs-inventory.ts`
+- **Commande** : `pnpm logs:inventory`
+
+**Contenu** :
+- 74 entrées de logs documentées
+- 6 catégories : API_KEYS, LICENSE, POI, API_USAGE, AUTH, SYSTEM
+- 4 statuts : SUCCESS, ERROR, WARNING, INFO
+- Détails complets : fichier source, ligne, endpoint, message, description
+
+**Utilité** :
+- Documentation exhaustive des points de log
+- Référence pour debugging
+- Audit des événements tracés
+- Formation nouvelle équipe
+
 ---
 
 ## � SECTION 2 : CONTEXTE PROJET
@@ -434,12 +454,13 @@ await DebugLogger.log({
 ### Commandes développement
 
 ```bash
-pnpm dev:clean  # ✅ Recommandé : Kill ports + démarrer proprement
-pnpm dev        # Démarrer normalement
-pnpm build      # Build production
-pnpm start      # Start production
-pnpm lint       # Lint code
-pnpm kill       # Kill processus Node
+pnpm dev:clean      # ✅ Recommandé : Kill ports + démarrer proprement
+pnpm dev            # Démarrer normalement
+pnpm build          # Build production
+pnpm start          # Start production
+pnpm lint           # Lint code
+pnpm kill           # Kill processus Node
+pnpm logs:inventory # Générer l'inventaire Excel des logs
 ```
 
 ### Structure dossiers

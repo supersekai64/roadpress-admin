@@ -200,9 +200,9 @@ export function TwoFactorVerify() {
           </div>
         </form>
 
-        <div className="mt-6 p-4 bg-muted rounded-lg">
+        <div className="mt-6 px-4 py-3 bg-muted rounded-lg">
           <p className="text-xs text-muted-foreground">
-            <strong>Astuce :</strong> Si vous avez perdu accès à votre application
+            Si vous avez perdu accès à votre application
             d{`'`}authentification, utilisez un de vos codes de secours. Chaque code
             ne peut être utilisé qu{`'`}une seule fois.
           </p>

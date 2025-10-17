@@ -26,6 +26,7 @@
 .image-cache.json
 
 # misc
+.vscode
 .DS_Store
 *.pem
 
@@ -50,7 +51,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# scripts with sensitive data
-scripts/create-admin.ts
-scripts/test-security.ps1

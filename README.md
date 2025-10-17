@@ -1,6 +1,6 @@
 #  RoadPress Admin - Next.js Dashboard
 
-Interface web moderne pour la gestion centralisée des licences, statistiques API et points d'intérêt (POI) Roadpress.
+Interface d'administration du plugin Roadpress (WordPress)
 
 ---
 
@@ -8,7 +8,7 @@ Interface web moderne pour la gestion centralisée des licences, statistiques AP
 
 - **Framework** : Next.js 15 (App Router)
 - **Language** : TypeScript (strict mode)
-- **Base de données** : PostgreSQL + Prisma ORM (auto-config)
+- **Base de données** : PostgreSQL + Prisma ORM + Prisma Accelerate
 - **Authentification** : NextAuth.js v5
 - **UI** : Tailwind CSS + shadcn/ui
 - **Graphiques** : Chartjs (react)
@@ -33,24 +33,14 @@ cd roadpress-admin
 pnpm install
 ```
 
-### 3. Configurer Vercel Postgres
+### 3. Configurer Prisma Accelerate
 
-#### Créer une base de données Vercel Postgres
+#### Créer une base de données avec Prisma
 
-1. Aller sur [Vercel Dashboard](https://vercel.com/dashboard)
-2. **Storage** → **Create Database**
-3. Choisir **Postgres**
-4. Nommer votre database (ex: `roadpress-db`)
-5. Créer la database
-
-#### Récupérer les variables d'environnement
-
-Dans Vercel Dashboard → votre database → **.env.local** tab :
-
-Copier les 3 variables :
-- `POSTGRES_URL`
-- `POSTGRES_PRISMA_URL`
-- `POSTGRES_URL_NON_POOLING`
+1. Aller sur [Prisma Data Platform](https://console.prisma.io/)
+2. Créer un nouveau projet
+3. Activer **Prisma Accelerate**
+4. Récupérer vos clés API
 
 #### Configurer .env.local
 
@@ -59,18 +49,27 @@ Copier les 3 variables :
 cp .env.example .env.local
 ```
 
-Éditer `.env.local` et remplacer les valeurs par celles de Vercel :
+Éditer `.env.local` et remplacer les valeurs par celles de Prisma :
 
 ```env
-# Database (Vercel Postgres)
-POSTGRES_URL="postgresql://user:password@host:5432/database"
-POSTGRES_PRISMA_URL="postgresql://user:password@host:5432/database?pgbouncer=true&connect_timeout=15"
-POSTGRES_URL_NON_POOLING="postgresql://user:password@host:5432/database"
+# Database (Prisma Accelerate)
+DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=YOUR_PRISMA_ACCELERATE_API_KEY"
+PRISMA_DATABASE_URL="prisma+postgres://accelerate.prisma-data.net/?api_key=YOUR_PRISMA_ACCELERATE_API_KEY"
+DIRECT_DATABASE_URL="postgres://YOUR_USER:YOUR_PASSWORD@db.prisma.io:5432/postgres?sslmode=require"
 
 # NextAuth.js
 NEXTAUTH_SECRET="generate-a-secret-with-openssl-rand-base64-32"
 NEXTAUTH_URL="http://localhost:3000"  # Développement local
 # NEXTAUTH_URL="https://roadpress.superbien-works.fr"  # Production
+
+# API Keys
+NEXT_PUBLIC_MAPBOX_TOKEN="your-mapbox-public-token-here"
+
+# Security Monitoring - Brevo (Alertes par e-mail)
+BREVO_API_KEY="xkeysib-XXXXXXXXXXXX"
+
+# Two-Factor Authentication (2FA)
+ENCRYPTION_KEY="your-encryption-key-32-characters-min"
 
 # App
 NODE_ENV="development"
@@ -105,13 +104,12 @@ pnpm dev:clean        # Kill les ports et relancer proprement
 
 # Base de données
 pnpm db:generate      # Générer le client Prisma
-pnpm db:push          # Push le schéma vers Postgres
+pnpm db:push          # Push le schéma vers Postgres (avec backup AUTO)
 pnpm db:migrate       # Créer une migration (LOCAL) avec backup AUTO
-pnpm db:migrate:prod  # ⚠️ Migration PRODUCTION avec backup AUTO
-pnpm db:backup        # 💾 Créer un backup de la base
-pnpm db:restore       # 🔄 Restaurer depuis un backup
+pnpm db:migrate:prod  # Migration PRODUCTION avec backup AUTO
+pnpm db:backup        # Créer un backup de la base
+pnpm db:restore       # Restaurer depuis un backup
 pnpm db:studio        # Ouvrir Prisma Studio (UI pour la DB)
-pnpm db:seed          # Seed la DB avec données de test
 
 # Build
 pnpm build            # Compiler pour production
@@ -121,7 +119,7 @@ pnpm analyze          # Analyser la taille des bundles
 # Utilitaires
 pnpm lint             # Vérifier le code avec ESLint
 pnpm kill             # Tuer tous les processus Node
-pnpm optimize:images  # Optimiser les images (WebP/AVIF)
+pnpm logs:inventory   # Générer l'inventaire Excel des logs
 ```
 
 ---
@@ -160,7 +158,6 @@ src/
 
 prisma/
 ├── schema.prisma                   # Schéma de la base
-└── seed.ts                         # Seed script
 ```
 
 ---
@@ -304,27 +301,87 @@ Vous pouvez filtrer les logs par :
 ## Sécurité
 
 - Authentification JWT avec NextAuth.js
+- Two-Factor Authentication (2FA) avec TOTP (Google Authenticator, Authy, etc.)
 - Middleware de protection des routes
 - Variables d'environnement pour secrets
 - Hashing bcrypt pour passwords
+- Chiffrement AES-256-GCM pour les secrets 2FA
 - TypeScript strict mode
 - Validation Zod des inputs
 
----
+### 🔐 Two-Factor Authentication (2FA)
 
-## Personnalisation
+Le dashboard dispose d'un système 2FA complet basé sur TOTP (Time-based One-Time Password).
 
-### Thème
+#### Configuration initiale
 
-Le projet utilise **next-themes** et **shadcn/ui**. 
+**Prérequis** : Variable d'environnement `ENCRYPTION_KEY` configurée (32 caractères minimum)
 
-Modifier les couleurs dans `src/app/globals.css` :
+```bash
+# Générer une clé de chiffrement sécurisée
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
-```css
-:root {
-  --background: ...;
-  --foreground: ...;
-  --primary: ...;
+Ajouter dans `.env.local` :
+```env
+ENCRYPTION_KEY="votre-clé-générée-64-caractères-hex"
+```
+
+#### Activation du 2FA (côté utilisateur)
+
+1. Se connecter au dashboard
+2. Cliquer sur l'avatar en haut à droite → **Paramètres**
+3. Section **Authentification à deux facteurs**
+4. Cliquer sur **Activer le 2FA**
+5. Scanner le QR code avec une application TOTP :
+   - **Google Authenticator** (iOS/Android)
+   - **Authy** (iOS/Android/Desktop)
+   - **Microsoft Authenticator** (iOS/Android)
+   - Ou tout autre client TOTP compatible
+6. Entrer le code à 6 chiffres généré pour confirmer
+7. **Sauvegarder les codes de récupération** (10 codes à usage unique)
+
+#### Connexion avec 2FA activé
+
+1. Entrer email + password normalement
+2. Page de vérification 2FA s'affiche automatiquement
+3. Entrer le code à 6 chiffres de l'application TOTP
+4. Accès accordé au dashboard
+
+#### Codes de récupération
+
+En cas de perte de l'appareil 2FA :
+- 10 codes de récupération générés lors de l'activation
+- Chaque code utilisable une seule fois
+- Permettent de se connecter même sans l'application TOTP
+- Peuvent être régénérés dans les paramètres (invalide les anciens)
+
+#### Désactivation du 2FA
+
+1. Dashboard → Avatar → **Paramètres**
+2. Section **Authentification à deux facteurs**
+3. Cliquer sur **Désactiver le 2FA**
+4. Entrer le code TOTP actuel pour confirmer
+5. 2FA désactivé, retour à l'authentification simple
+
+#### Sécurité technique
+
+- **Algorithme** : TOTP (RFC 6238) avec SHA-1
+- **Période** : 30 secondes par code
+- **Longueur** : 6 chiffres
+- **Fenêtre de tolérance** : ±1 période (90 secondes totales)
+- **Stockage secret** : Chiffré AES-256-GCM en base de données
+- **Codes de récupération** : Hachés bcrypt (non réversibles)
+
+#### Base de données
+
+Table `users` enrichie avec :
+```prisma
+model User {
+  // ... champs existants
+  twoFactorEnabled   Boolean  @default(false)
+  twoFactorSecret    String?  // Secret TOTP chiffré
+  recoveryCodes      String[] // Codes de récupération hachés
 }
 ```
 
@@ -350,18 +407,6 @@ Chaque site WordPress client doit avoir :
 
 ---
 
-## Prisma Studio
-
-Ouvrir une interface graphique pour visualiser/éditer la base de données :
-
-```bash
-pnpm db:studio
-```
-
-Ouvre sur [http://localhost:5555](http://localhost:5555)
-
----
-
 ## Déploiement sur Vercel
 
 ### 1. Push sur GitHub
@@ -383,19 +428,32 @@ git push origin main
 Dans Vercel → Settings → Environment Variables :
 
 Ajouter :
-- `POSTGRES_URL`
-- `POSTGRES_PRISMA_URL`
-- `POSTGRES_URL_NON_POOLING`
-- `NEXTAUTH_SECRET`
+- `DATABASE_URL` = `prisma+postgres://accelerate.prisma-data.net/?api_key=YOUR_API_KEY`
+- `PRISMA_DATABASE_URL` = `prisma+postgres://accelerate.prisma-data.net/?api_key=YOUR_API_KEY`
+- `DIRECT_DATABASE_URL` = `postgres://user:password@db.prisma.io:5432/postgres?sslmode=require`
+- `NEXTAUTH_SECRET` = généré avec `openssl rand -base64 32`
 - `NEXTAUTH_URL` = `https://your-domain.vercel.app`
+- `NEXT_PUBLIC_MAPBOX_TOKEN` = votre token Mapbox
+- `BREVO_API_KEY` = votre clé API Brevo
+- `ENCRYPTION_KEY` = clé de chiffrement 2FA (32 caractères min)
 
 ### 4. Deploy
 
 Vercel build automatiquement.
 
-Après le déploiement, seed la DB en production :
+Après le déploiement, créer un utilisateur admin :
 
+1. Éditer `scripts/create-admin.ts` avec vos informations :
+```typescript
+const adminData = {
+  email: 'votre-email@example.com',
+  name: 'Votre Nom',
+  password: 'votre-mot-de-passe-securise',
+  role: 'ADMIN'
+};
+```
+
+2. Exécuter le script :
 ```bash
-# Localement avec les env vars de production
-POSTGRES_URL="..." pnpm db:seed
+pnpm db:create-admin
 ```

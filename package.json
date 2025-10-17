@@ -27,7 +27,6 @@
     "dev": "next dev",
     "dev:turbo": "next dev --turbopack",
     "dev:clean": "powershell -ExecutionPolicy Bypass -File ./scripts/dev-clean.ps1",
-    "optimize:images": "node scripts/optimize-images.js",
     "deploy": "powershell -ExecutionPolicy Bypass -File ./scripts/deploy.ps1",
     "build": "prisma generate --no-engine && next build",
     "postinstall": "prisma generate",
@@ -35,10 +34,6 @@
     "start": "next start",
     "lint": "next lint",
     "kill": "powershell -Command \"Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force\"",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f postgres",
-    "docker:reset": "docker-compose down -v && docker-compose up -d",
     "db:generate": "prisma generate",
     "db:push": "node scripts/pre-migrate-backup.js && prisma db push",
     "db:migrate": "powershell -ExecutionPolicy Bypass -File ./scripts/migrate-with-backup.ps1 dev",
@@ -51,13 +46,13 @@
     "db:seed:sms": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} prisma/seed-sms-reports.ts",
     "db:create-admin": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/create-admin.ts",
     "create:user:paul": "ts-node --compiler-options {\\\"module\\\":\\\"CommonJS\\\"} scripts/create-user-paul.ts",
-    "db:setup": "pnpm docker:up && timeout /t 5 /nobreak && pnpm db:push && pnpm db:seed",
     "diagnose": "node scripts/diagnose-prisma.js",
     "setup:env": "node scripts/setup-env.js",
     "env:local": "node scripts/setup-env.js local && pnpm prisma generate",
     "env:production": "node scripts/setup-env.js production && pnpm prisma generate",
     "secret:generate": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-nextauth-secret.ps1",
-    "check:prod": "powershell -ExecutionPolicy Bypass -File ./scripts/check-prod-config.ps1"
+    "check:prod": "powershell -ExecutionPolicy Bypass -File ./scripts/check-prod-config.ps1",
+    "logs:inventory": "npx ts-node scripts/generate-logs-inventory.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
@@ -108,7 +103,6 @@
     "supercluster": "^8.0.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "xlsx": "^0.18.5",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -129,6 +123,7 @@
     "sharp": "^0.34.4",
     "tailwindcss": "^3.4.18",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "xlsx": "^0.18.5"
   }
 }

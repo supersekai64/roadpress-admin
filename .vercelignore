@@ -21,14 +21,13 @@ coverage
 *.spec.ts
 *.spec.tsx
 
-# Documentation (si pas nécessaire en production)
+# Documentation
 docs
 *.md
 !README.md
 
 # Scripts de développement
 scripts/dev-clean.ps1
-scripts/optimize-images.js
 
 # Prisma
 prisma/migrations
