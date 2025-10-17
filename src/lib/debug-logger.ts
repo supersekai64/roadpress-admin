@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 
 // Import des types Prisma générés
-type LogCategory = 'SYNC' | 'PUSH_API' | 'LICENSE' | 'API_USAGE' | 'POI' | 'AUTH' | 'PRICING' | 'SYSTEM' | 'ERROR';
+type LogCategory = 'SYNC' | 'PUSH_API' | 'LICENSE' | 'API_USAGE' | 'API_KEYS' | 'POI' | 'AUTH' | 'PRICING' | 'SYSTEM' | 'ERROR';
 type LogStatus = 'SUCCESS' | 'WARNING' | 'ERROR' | 'INFO';
 
 interface LogData {

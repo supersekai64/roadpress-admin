@@ -89,6 +89,260 @@ npx prisma migrate reset     # ❌ INTERDIT (bloqué par script)
 
 ---
 
+## 🔴 SECTION 1.5 : SÉCURITÉ API (RÈGLES CRITIQUES)
+
+### 🚨 Leçon apprise : Incident du 17 octobre 2025
+
+**INCIDENT** : Faille critique découverte dans `/api/api-keys/provide`
+- Exposait TOUTES les clés API (OpenAI, Brevo, DeepL, Mapbox) sans vérification du domaine
+- N'importe qui avec une licence valide pouvait voler les clés
+- Coût potentiel : milliers d'euros + violation confidentialité
+
+**CAUSE RACINE** : Validation insuffisante (seulement statut ACTIVE vérifié)
+
+### ⚠️ RÈGLES ABSOLUES pour endpoints API sensibles
+
+#### 1. VALIDATION EN PROFONDEUR (Defense in Depth)
+
+**TOUJOURS vérifier dans cet ordre** :
+
+```typescript
+export async function GET(request: NextRequest) {
+  // 1️⃣ PARAMÈTRES REQUIS
+  const { license_key, site_url } = extractParams(request);
+  if (!license_key || !site_url) {
+    await logError('Missing required params');
+    return NextResponse.json({ error: 'Bad request' }, { status: 400 });
+  }
+
+  // 2️⃣ RESSOURCE EXISTE
+  const license = await prisma.license.findUnique({ where: { licenseKey: license_key } });
+  if (!license) {
+    await logError('Resource not found', { license_key });
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  // 3️⃣ STATUT VALIDE
+  if (license.status !== 'ACTIVE') {
+    await logWarning('Invalid status', { status: license.status });
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // 4️⃣ ASSOCIATION REQUISE (pour endpoints sensibles)
+  if (!license.isAssociated || !license.siteUrl) {
+    await logWarning('Not associated');
+    return NextResponse.json({ error: 'Not associated' }, { status: 403 });
+  }
+
+  // 5️⃣ 🔐 VÉRIFICATION DOMAINE EXACT (CRITIQUE)
+  if (license.siteUrl !== site_url) {
+    await logError('UNAUTHORIZED ACCESS ATTEMPT', {
+      requested: site_url,
+      authorized: license.siteUrl,
+    });
+    return NextResponse.json(
+      { error: `Authorized only for ${license.siteUrl}` },
+      { status: 403 }
+    );
+  }
+
+  // 6️⃣ EXPIRATION
+  if (new Date(license.endDate) < new Date()) {
+    await logWarning('Expired', { endDate: license.endDate });
+    return NextResponse.json({ error: 'Expired' }, { status: 403 });
+  }
+
+  // ✅ ACCÈS AUTORISÉ
+  await logSuccess('Access granted', { license_key, site_url });
+  return NextResponse.json({ success: true, data: sensitiveData });
+}
+```
+
+#### 2. LOGGING EXHAUSTIF (TOUJOURS)
+
+**OBLIGATOIRE pour tous les endpoints sensibles** :
+
+```typescript
+// ✅ Logger TOUTES les tentatives (réussies ET échouées)
+await DebugLogger.log({
+  category: 'API_KEYS',  // ou LICENSE, AUTH, etc.
+  action: 'PROVIDE_KEYS',
+  method: 'GET',
+  endpoint: '/api/api-keys/provide',
+  licenseId: license?.id,
+  clientName: license?.clientName,
+  status: 'ERROR',  // ou SUCCESS, WARNING
+  message: 'TENTATIVE D\'ACCÈS NON AUTORISÉ',
+  requestData: {
+    license_key,
+    site_url,
+    requested: site_url,
+    authorized: license.siteUrl,
+  },
+  errorDetails: 'Domain mismatch',
+});
+```
+
+#### 3. ENDPOINTS SENSIBLES : Checklist obligatoire
+
+**Avant de créer/modifier un endpoint exposant des données sensibles :**
+
+- [ ] Tous les paramètres requis sont validés
+- [ ] La ressource existe et est récupérée
+- [ ] Le statut/état est vérifié (ACTIVE, VALID, etc.)
+- [ ] L'association/ownership est vérifiée
+- [ ] **Le domaine/origine est vérifié EXACTEMENT**
+- [ ] L'expiration est vérifiée
+- [ ] Toutes les tentatives sont loggées (SUCCESS + ERROR)
+- [ ] Les erreurs retournent des messages génériques à l'utilisateur
+- [ ] Les erreurs détaillées sont loggées en interne
+- [ ] Les données sensibles ne sont JAMAIS exposées dans les erreurs
+
+#### 4. CATÉGORIES D'ENDPOINTS par niveau de sécurité
+
+##### 🔴 CRITIQUE (clés API, tokens, secrets)
+- `/api/api-keys/provide` - Clés API tierces
+- `/api/auth/token` - Tokens d'authentification
+
+**Sécurité requise** :
+- ✅ Validation 6 niveaux (paramètres, ressource, statut, association, domaine, expiration)
+- ✅ Logging exhaustif (tous accès)
+- ✅ Rate limiting strict (max 10/min)
+- ✅ Monitoring alertes temps réel
+
+##### 🟠 ÉLEVÉ (données client, modifications)
+- `/api/licenses/verify` - Vérification licence
+- `/api/licenses/update` - Modification licence
+- `/api/statistics` - Stats privées
+
+**Sécurité requise** :
+- ✅ Validation 4-5 niveaux minimum
+- ✅ Logging toutes modifications
+- ✅ Rate limiting modéré (max 30/min)
+
+##### 🟡 MOYEN (lecture données semi-publiques)
+- `/api/poi` - Points d'intérêt publics
+- `/api/statistics/public` - Stats anonymisées
+
+**Sécurité requise** :
+- ✅ Validation 2-3 niveaux
+- ✅ Logging accès suspects
+- ✅ Rate limiting léger (max 100/min)
+
+#### 5. ANTI-PATTERNS DANGEREUX (NE JAMAIS FAIRE)
+
+```typescript
+// ❌ DANGEREUX : Pas de vérification du domaine
+export async function GET(request: NextRequest) {
+  const { license_key } = extractParams(request);
+  const license = await prisma.license.findUnique({ where: { licenseKey: license_key } });
+  
+  if (license.status === 'ACTIVE') {
+    // ❌ FAILLE : N'importe qui avec une licence active peut accéder !
+    return NextResponse.json({ api_keys: allKeys });
+  }
+}
+
+// ❌ DANGEREUX : Pas de logging
+export async function GET() {
+  // ... validation ...
+  // ❌ Impossible de détecter une exploitation
+  return NextResponse.json({ data: sensitiveData });
+}
+
+// ❌ DANGEREUX : Erreurs trop détaillées
+catch (error) {
+  // ❌ Expose la structure de la DB
+  return NextResponse.json({ error: error.message }, { status: 500 });
+}
+
+// ❌ DANGEREUX : Exposer toutes les données
+const users = await prisma.user.findMany();
+// ❌ Expose passwords, emails, etc.
+return NextResponse.json(users);
+```
+
+#### 6. PATTERNS SÉCURISÉS (TOUJOURS FAIRE)
+
+```typescript
+// ✅ BON : Validation complète + logging
+export async function GET(request: NextRequest) {
+  try {
+    // Validation 6 niveaux (voir point 1)
+    const validated = await validateRequest(request);
+    if (!validated.success) {
+      await logError(validated.error);
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Accès autorisé
+    await logSuccess('Access granted', validated.data);
+    return NextResponse.json({ success: true, data: validated.data });
+  } catch (error) {
+    // ✅ Log interne détaillé
+    console.error('[API ERROR]', error);
+    await DebugLogger.log({
+      category: 'ERROR',
+      status: 'ERROR',
+      message: 'Server error',
+      errorDetails: error instanceof Error ? error.message : String(error),
+    });
+
+    // ✅ Message générique à l'utilisateur
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+
+// ✅ BON : Sélectionner uniquement les champs nécessaires
+const users = await prisma.user.findMany({
+  select: {
+    id: true,
+    name: true,
+    // ❌ PAS de password, email, tokens
+  },
+});
+```
+
+#### 7. AJOUT NOUVEAU TYPE DE LOG
+
+**Procédure obligatoire** :
+
+1. Ajouter dans `src/lib/debug-logger.ts` :
+```typescript
+type LogCategory = 'SYNC' | 'LICENSE' | 'API_KEYS' | 'NOUVELLE_CATEGORY';
+```
+
+2. Ajouter dans `prisma/schema.prisma` :
+```prisma
+enum LogCategory {
+  SYNC
+  LICENSE
+  API_KEYS
+  NOUVELLE_CATEGORY  // Avec commentaire explicatif
+}
+```
+
+3. Créer migration :
+```bash
+pnpm db:push  # Avec backup automatique
+```
+
+4. Tester :
+```typescript
+await DebugLogger.log({
+  category: 'NOUVELLE_CATEGORY',
+  message: 'Test',
+});
+```
+
+### 📚 Références sécurité
+
+- **Incident report** : `SECURITY-INCIDENT-2025-10-17.md`
+- **Security guide** : `SECURITY-GUIDE.md`
+- **OWASP API Top 10** : https://owasp.org/www-project-api-security/
+
+---
+
 ## � SECTION 2 : CONTEXTE PROJET
 
 ### Environnement
@@ -269,6 +523,65 @@ import type { User } from '@/types/user'
 
 // ❌ Ne jamais utiliser chemins relatifs
 import { Button } from '../../../components/ui/button'
+```
+
+### WordPress : Sécurité API (Plugin client)
+
+```php
+// ✅ TOUJOURS : Ajouter automatiquement site_url pour endpoints sensibles
+function roadpress_api_get($endpoint_key, $params = []) {
+    $endpoints = ROADPRESS_API_ENDPOINTS;
+    
+    if (!isset($endpoints[$endpoint_key])) {
+        return new WP_Error('invalid_endpoint', 'Endpoint API invalide: ' . $endpoint_key);
+    }
+    
+    $url = $endpoints[$endpoint_key];
+    
+    // Ajouter automatiquement la license_key si elle n'est pas présente
+    if (!isset($params['license_key'])) {
+        $params['license_key'] = get_option('roadpress_license_key', '');
+    }
+    
+    // 🔐 SÉCURITÉ : Ajouter automatiquement site_url pour les endpoints sensibles
+    if (in_array($endpoint_key, ['provide_api_keys', 'keys'], true)) {
+        if (!isset($params['site_url'])) {
+            $params['site_url'] = get_site_url();
+        }
+    }
+    
+    $url = add_query_arg($params, $url);
+    
+    $response = wp_remote_get($url, [
+        'headers' => roadpress_get_auth_headers(),
+        'timeout' => 30,
+    ]);
+    
+    return $response;
+}
+
+// ✅ TOUJOURS : Valider les réponses API
+function roadpress_parse_api_response($response) {
+    if (is_wp_error($response)) {
+        roadpress_debug_log('[ROADPRESS] [API] Erreur requête: ' . $response->get_error_message());
+        return null;
+    }
+    
+    $body = wp_remote_retrieve_body($response);
+    $status_code = wp_remote_retrieve_response_code($response);
+    
+    // Nettoyer les notices PHP potentielles
+    $clean_body = preg_replace('/<br\s*\/?>.*?{/is', '{', $body);
+    
+    $data = json_decode($clean_body, true);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        roadpress_debug_log('[ROADPRESS] [API] Erreur JSON: ' . json_last_error_msg());
+        return null;
+    }
+    
+    return $data;
+}
 ```
 
 ### Styles : Tailwind + cn() + Variables CSS

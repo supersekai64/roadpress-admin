@@ -388,6 +388,7 @@ enum LogCategory {
   PUSH_API      // Envoi des clés API aux sites clients
   LICENSE       // Opérations sur les licences
   API_USAGE     // Utilisation des APIs (OpenAI, DeepL, SMS, Email)
+  API_KEYS      // Accès aux clés API (sécurité critique)
   POI           // Opérations sur les points d'intérêt
   AUTH          // Authentification et autorisations
   PRICING       // Système de tarification SMS
