@@ -16,13 +16,12 @@ export async function GET() {
       'SYNC',
       'PUSH_API',
       'LICENSE',
-      'API_USAGE',
       'API_KEYS',
       'POI',
       'AUTH',
-      'PRICING',
       'SYSTEM',
       'ERROR',
+      'SECURITY',
     ];
 
     // Récupérer les statuts, clients et actions uniques depuis la base de données

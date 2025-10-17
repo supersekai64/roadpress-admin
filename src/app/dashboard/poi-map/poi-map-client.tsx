@@ -120,11 +120,8 @@ export default function PoiMapClient() {
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [seasonsSearchOpen, setSeasonsSearchOpen] = useState(false);
-  const [seasonsSearchQuery, setSeasonsSearchQuery] = useState('');
   const [profilesSearchOpen, setProfilesSearchOpen] = useState(false);
-  const [profilesSearchQuery, setProfilesSearchQuery] = useState('');
   const [reasonsSearchOpen, setReasonsSearchOpen] = useState(false);
-  const [reasonsSearchQuery, setReasonsSearchQuery] = useState('');
   
   const [viewState, setViewState] = useState({
     latitude: 46.603354,
@@ -712,21 +709,8 @@ export default function PoiMapClient() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                    <div className="flex items-center border-b px-3 bg-card">
-                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                      <Input
-                        placeholder="Rechercher une saison..."
-                        value={seasonsSearchQuery}
-                        onChange={(e) => setSeasonsSearchQuery(e.target.value)}
-                        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
-                      />
-                    </div>
                     <div className="max-h-[300px] overflow-y-auto p-1">
-                      {Object.entries(SEASON_LABELS)
-                        .filter(([_, label]) =>
-                          label.toLowerCase().includes(seasonsSearchQuery.toLowerCase())
-                        )
-                        .map(([value, label]) => {
+                      {Object.entries(SEASON_LABELS).map(([value, label]) => {
                           const isSelected = selectedSeasons.includes(value);
                           return (
                             <div
@@ -781,21 +765,8 @@ export default function PoiMapClient() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                    <div className="flex items-center border-b px-3 bg-card">
-                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                      <Input
-                        placeholder="Rechercher un profil..."
-                        value={profilesSearchQuery}
-                        onChange={(e) => setProfilesSearchQuery(e.target.value)}
-                        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
-                      />
-                    </div>
                     <div className="max-h-[300px] overflow-y-auto p-1">
-                      {Object.entries(PROFILE_LABELS)
-                        .filter(([_, label]) =>
-                          label.toLowerCase().includes(profilesSearchQuery.toLowerCase())
-                        )
-                        .map(([value, label]) => {
+                      {Object.entries(PROFILE_LABELS).map(([value, label]) => {
                           const isSelected = selectedProfiles.includes(value);
                           return (
                             <div
@@ -850,21 +821,8 @@ export default function PoiMapClient() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                    <div className="flex items-center border-b px-3 bg-card">
-                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                      <Input
-                        placeholder="Rechercher une raison..."
-                        value={reasonsSearchQuery}
-                        onChange={(e) => setReasonsSearchQuery(e.target.value)}
-                        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 bg-card"
-                      />
-                    </div>
                     <div className="max-h-[300px] overflow-y-auto p-1">
-                      {Object.entries(TRAVEL_REASON_LABELS)
-                        .filter(([_, label]) =>
-                          label.toLowerCase().includes(reasonsSearchQuery.toLowerCase())
-                        )
-                        .map(([value, label]) => {
+                      {Object.entries(TRAVEL_REASON_LABELS).map(([value, label]) => {
                           const isSelected = selectedTravelReasons.includes(value);
                           return (
                             <div
